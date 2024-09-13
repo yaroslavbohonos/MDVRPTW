@@ -1,0 +1,6 @@
+ProblemID,NumCustomers,NumDepots,NumVehicles,FilePath
+0,50,2,2,/data/problem0.csv
+1,20,2,3,/data/problem1.csv
+2,30,3,1,/data/problem2.csv
+3,25,4,1,/data/problem3.csv
+4,15,3,1,/data/problem4.csv
