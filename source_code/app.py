@@ -1,6 +1,118 @@
-from dash import Dash, dcc, Input, Output, html
+﻿from dash import Dash, dcc, Input, Output, html
 import dash_bootstrap_components as dbc
 import plotly.express as px
+import plotly.graph_objects as go
+
+
+def add_legend_only_entry(fig, name, symbol, color, size, mode='markers', line_color=None):
+    """Adds a legend-only entry (no actual data points) to the figure."""
+    fig.add_trace(go.Scatter(
+        x=[None], y=[None],  # No actual data point plotted
+        mode=mode,
+        marker=dict(size=size, symbol=symbol, color=color) if mode == 'markers' else None,
+        line=dict(color=line_color) if mode == 'lines' else None,
+        name=name,
+        showlegend=True
+    ))
+
+def create_vrp_map():
+    # Experimental data for with routes, customers and depots(including time windows):
+    customers = [
+        {"id": 1, "x": 5, "y": 10, "start_time": 9, "end_time": 16},
+        {"id": 2, "x": 15, "y": 20, "start_time": 9, "end_time": 17},
+        {"id": 3, "x": 25, "y": 15, "start_time": 10, "end_time": 18},
+        {"id": 4, "x": 25, "y": 5, "start_time": 16, "end_time": 17},
+    ]
+
+    depots = [
+        {"id": 1, "x": 0, "y": 0, "start_time": 9, "end_time": 18},
+        {"id": 2, "x": 10, "y": 0, "start_time": 9, "end_time": 19},
+    ]
+
+    routes = [
+        {"start_x": 0, "start_y": 0, "end_x": 5, "end_y": 10},  
+        {"start_x": 5, "start_y": 10, "end_x": 15, "end_y": 20}, 
+        {"start_x": 15, "start_y": 20, "end_x": 0, "end_y": 0},
+        {"start_x": 10, "start_y": 0, "end_x": 25, "end_y": 15},
+        {"start_x": 25, "start_y": 15, "end_x": 25, "end_y": 5},
+        {"start_x": 25, "start_y": 5, "end_x": 10, "end_y": 0}
+    ]
+
+    # Initialise the map
+    fig = go.Figure()
+    
+    # Change from standard blue to white background
+    fig.update_layout(
+        plot_bgcolor='white'
+    )
+
+    # Plot customers with time windows
+    for customer in customers:
+        fig.add_trace(go.Scatter(
+            x=[customer['x']],
+            y=[customer['y']],
+            mode='markers+text', # Allows displaying not only icons but also contents of "text" next to icons
+            textposition='top center',
+            showlegend=False,  # Not displaying each customer in legend
+            marker=dict(size=10, symbol='circle', color='blue'), # An icon for each customer
+            text=f"[{customer['start_time']}, {customer['end_time']}]"
+        ))
+
+    # Plot depots with time windows
+    for depot in depots:
+        fig.add_trace(go.Scatter(
+            x=[depot['x']],
+            y=[depot['y']],
+            mode='markers+text',
+            textposition='top center',
+            showlegend=False, 
+            marker=dict(size=15, symbol='square', color='green'),
+            text=f"[{depot['start_time']}, {depot['end_time']}]"
+        ))
+
+    # Plot route connection between a depot and customer(-s)
+    for route in routes:
+        fig.add_trace(go.Scatter(
+            x=[route['start_x'], route['end_x']],
+            y=[route['start_y'], route['end_y']],
+            mode='lines',
+            showlegend=False,
+            line=dict(color='blue'),
+            name="Route",
+        ))
+
+    # Add legend-only entries using the multi-figure function
+    add_legend_only_entry(fig, name="Depot", symbol='square', color='green', size=15)
+    add_legend_only_entry(fig, name="Customer", symbol='circle', color='blue', size=10)
+    add_legend_only_entry(fig, name="Route", symbol=None, color=None, size=None, mode='lines', line_color='blue')
+
+    # Axes properties for map
+    axis_properties = dict(
+        showgrid=False,
+        showticklabels=False,
+        mirror=True,
+        ticks='outside',
+        showline=True,
+        linecolor='black'
+    )
+
+    # Update layout with legend and map style
+    fig.update_layout(
+        xaxis = axis_properties,
+        yaxis = axis_properties,
+        showlegend=True,
+        legend=dict(
+            orientation="h",  # Horizontal legend
+            yanchor="bottom",  # Anchor it to the bottom
+            y=-0.09,  # Position below the plot
+            xanchor="center",
+            x=0.5  # Center it horizontally
+        ),
+        margin=dict(l=10, r=10, t=30, b=80)  # Adjust margins to fit the legend
+    )
+    
+    return fig
+
 
 # Initialise Dash app with Bootstrap theme for easier styling
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -87,8 +199,8 @@ app.layout = dbc.Container([
         
         # Center column for the problem visualization and description
         dbc.Col([
-            html.H5("Visualised Problem (Map)"),  # Section title for the problem map
-            dcc.Graph(id="problem-map", figure={}),  # Placeholder for the problem map
+            html.H5("Visualised Problem Map"),  # Section title for the problem map
+            dcc.Graph(id="problem-map", figure=create_vrp_map()),  # Placeholder for the problem map
             
             html.Br(),  # Line break for spacing
             
