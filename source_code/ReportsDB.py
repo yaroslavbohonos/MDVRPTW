@@ -2,9 +2,9 @@ import pandas as pd
 import sqlite3
 import csv
 
-class Reports():
+class DataBase():
     # Assign object attributes
-    def __init__(self, dbPath='MDVRPTW_database.db'):
+    def __init__(self, dbPath='./data/MDVRPTW_database.db'):
         self.dbPath = dbPath
 
     # Handle database connection
@@ -93,3 +93,34 @@ class Reports():
         conn.close()
 
         return data
+  
+    def returnSolutions(self, problemIndex: int):
+        # Connect to the database
+        conn = self.connect_db()
+        cursor = conn.cursor()
+
+        # Query to select all columns except SolutionID for the given ProblemID
+        query = '''
+            SELECT ProblemID, SelectionType, MutationProb, Distance, Date, Time
+            FROM Solutions
+            WHERE ProblemID = ?
+        '''
+        
+        # Execute the query with the provided problemIndex
+        cursor.execute(query, (problemIndex,))
+
+        # Fetch all results into a list
+        results = cursor.fetchall()
+
+        # Create a DataFrame from the query result and exclude the SolutionID
+        columns = ['ProblemID', 'SelectionType', 'MutationProb', 'Distance', 'Date', 'Time']
+        df = pd.DataFrame(results, columns=columns)
+
+        # Increment ProblemID by 1 in the DataFrame to show the actual problem number
+        df['ProblemID'] = df['ProblemID'] + 1
+
+        # Close the connection
+        conn.close()
+
+        # Return the DataFrame
+        return df

@@ -1,7 +1,13 @@
-﻿from dash import Dash, dcc, Input, Output, html
+﻿from ReportsDB import DataBase
+from dash import Dash, dcc, Input, Output, html
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import plotly.graph_objects as go
+import dash_ag_grid as dag
+import pandas
+
+
+DB = DataBase()
 
 
 def add_legend_only_entry(fig, name, symbol, color, size, mode='markers', line_color=None):
@@ -113,6 +119,31 @@ def create_vrp_map():
     
     return fig
 
+# Function to create the solutions history table
+def create_solutions_history(problemIndex=0):
+    # Fetch the data for the specific problem
+    solutions = DB.returnSolutions(problemIndex)  # Get solutions DataFrame from the DB
+
+    # Define the column definitions (these are based on your DataFrame structure)
+    columnDefs = [
+        {"headerName": "ProblemID", "field": "ProblemID", "filter": "agNumberColumnFilter"},
+        {"headerName": "SelectionType", "field": "SelectionType", "filter": "agTextColumnFilter"},
+        {"headerName": "MutationProb", "field": "MutationProb", "filter": "agNumberColumnFilter"},
+        {"headerName": "Distance", "field": "Distance", "filter": "agNumberColumnFilter"},
+        {"headerName": "Date", "field": "Date", "filter": "agDateColumnFilter"},
+        {"headerName": "Time", "field": "Time", "filter": "agTextColumnFilter"}
+    ]
+    
+    # Create AgGrid table using the solutions DataFrame
+    return dag.AgGrid(
+        id="solutions_history",
+        rowData=solutions.to_dict("records"),  # Pass the solutions DataFrame as row data
+        columnDefs=columnDefs,  # Use the defined columnDefs to structure the grid
+        defaultColDef={"filter": True},  # Enable filtering for all columns
+        columnSize="sizeToFit",  # Adjust columns to fit the content
+        dashGridOptions={"animateRows": False}  # Disable row animation for performance
+    )
+
 
 # Initialise Dash app with Bootstrap theme for easier styling
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -218,12 +249,9 @@ app.layout = dbc.Container([
             ]),
             
             html.Br(),  # Line break for spacing
-                         
-            # Solutions history section
-            html.Div([
-                html.H5("Solutions History"),  # Section title for solutions history
-                dcc.Graph(id="solution-history", figure={})  # Placeholder for solutions history
-            ])
+                    
+            # Solutions History
+            create_solutions_history(1)
         ], width=5),  # Adjust width for the right column
     ], align="start"),  # Align content to the top
     
@@ -231,7 +259,6 @@ app.layout = dbc.Container([
 
 ], fluid=True)  # Use fluid layout for full-width display
 
-# Callbacks for interactive elements (e.g., updating graphs based on user input) will be added here
 
 # Run the app
 if __name__ == "__main__":
@@ -241,7 +268,7 @@ if __name__ == "__main__":
 """
 The following code block interacts with the 'Reports' class to load depot and customer data for visualization:
 
-DB = Reports()
+DB = DataBase()
 
 # Load data from the tables in the database
 DB.loadTables()
