@@ -63,12 +63,15 @@ class DataBase():
         conn.close()
 
     def returnCustomerData(self, problemIndex: int):
+        """ 1-indexed index notation """        
+
         # Connect to database
         conn = self.connect_db()
         cursor = conn.cursor()
 
         # Load customer data without header titles and the first index column
-        df = pd.read_csv(f"./data/problem{problemIndex}/customers{problemIndex}.csv", usecols=[1, 2, 3, 4, 5], header=0)
+        # usecols uses 0-indexed column numbering
+        df = pd.read_csv(f"./data/problem{problemIndex}/customers.csv", usecols=[1, 2, 3, 4, 5], header=0)
         
         # Convert DataFrame to a list of lists
         data = df.values.tolist()
@@ -78,13 +81,15 @@ class DataBase():
 
         return data
 
-    def returnDepotData(self, problemIndex: int):
+    def returnDepotData(self, problemIndex: int): 
+        """ 1-indexed index notation """
+        
         # Connect to database
         conn = self.connect_db()
         cursor = conn.cursor()
 
         # Load depot data without header titles and the first index
-        df = pd.read_csv(f"./data/problem{problemIndex}/depots{problemIndex}.csv", usecols=[1, 2, 3, 4, 5], header=0)
+        df = pd.read_csv(f"./data/problem{problemIndex}/depots.csv", usecols=[1, 2, 3, 4, 5], header=0)
 
         # Convert DataFrame to a list of lists
         data = df.values.tolist()
@@ -95,6 +100,8 @@ class DataBase():
         return data
   
     def returnSolutions(self, problemIndex: int):
+        """ 1-indexed for indexes"""
+        
         # Connect to the database
         conn = self.connect_db()
         cursor = conn.cursor()
@@ -115,9 +122,6 @@ class DataBase():
         # Create a DataFrame from the query result and exclude the SolutionID
         columns = ['ProblemID', 'SelectionType', 'MutationProb', 'Distance', 'Date', 'Time']
         df = pd.DataFrame(results, columns=columns)
-
-        # Increment ProblemID by 1 in the DataFrame to show the actual problem number
-        df['ProblemID'] = df['ProblemID'] + 1
 
         # Close the connection
         conn.close()

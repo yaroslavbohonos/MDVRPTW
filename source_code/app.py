@@ -9,7 +9,6 @@ import pandas
 
 DB = DataBase()
 
-
 def add_legend_only_entry(fig, name, symbol, color, size, mode='markers', line_color=None):
     """Adds a legend-only entry (no actual data points) to the figure."""
     fig.add_trace(go.Scatter(
@@ -119,22 +118,22 @@ def create_vrp_map():
     
     return fig
 
-# Function to create the solutions history table
+# Create solutions history table
 def create_solutions_history(problemIndex=0):
-    # Fetch the data for the specific problem
+    # Fetch problem data based on index
     solutions = DB.returnSolutions(problemIndex)  # Get solutions DataFrame from the DB
 
-    # Define the column definitions (these are based on your DataFrame structure)
+    # Define the column definitions
     columnDefs = [
-        {"headerName": "ProblemID", "field": "ProblemID", "filter": "agNumberColumnFilter"},
-        {"headerName": "SelectionType", "field": "SelectionType", "filter": "agTextColumnFilter"},
-        {"headerName": "MutationProb", "field": "MutationProb", "filter": "agNumberColumnFilter"},
+        {"headerName": "Problem No.", "field": "ProblemID", "filter": "agNumberColumnFilter"},
+        {"headerName": "Selection Type", "field": "SelectionType", "filter": "agTextColumnFilter"},
+        {"headerName": "Mutation Prob", "field": "MutationProb", "filter": "agNumberColumnFilter"},
         {"headerName": "Distance", "field": "Distance", "filter": "agNumberColumnFilter"},
         {"headerName": "Date", "field": "Date", "filter": "agDateColumnFilter"},
         {"headerName": "Time", "field": "Time", "filter": "agTextColumnFilter"}
     ]
     
-    # Create AgGrid table using the solutions DataFrame
+    # Create AgGrid table using solutions data
     return dag.AgGrid(
         id="solutions_history",
         rowData=solutions.to_dict("records"),  # Pass the solutions DataFrame as row data
@@ -175,13 +174,13 @@ app.layout = dbc.Container([
                 # Dropdown for choosing problem
                 html.Label("Problem to be solved and displayed", style={"margin-top": "20px"}),
                 dcc.Dropdown([ 
-                    {'label': 'Problem 1 (n customers, n depots)', 'value': 0}, 
-                    {'label': 'Problem 2 (n customers, n depots)', 'value': 1},
-                    {'label': 'Problem 3 (n customers, n depots)', 'value': 2},
-                    {'label': 'Problem 4 (n customers, n depots)', 'value': 3},
-                    {'label': 'Problem 5 (n customers, n depots)', 'value': 4}
+                    {'label': 'Problem 1 (n customers, n depots)', 'value': 1}, 
+                    {'label': 'Problem 2 (n customers, n depots)', 'value': 2},
+                    {'label': 'Problem 3 (n customers, n depots)', 'value': 3},
+                    {'label': 'Problem 4 (n customers, n depots)', 'value': 4},
+                    {'label': 'Problem 5 (n customers, n depots)', 'value': 5}
                 ], 
-                value=0,  # Default to 'Problem 1'
+                value=1,  # Default to 'Problem 1'
                 searchable=False),  # Restrict user text input
 
                 # Slider for start population size
@@ -269,9 +268,6 @@ if __name__ == "__main__":
 The following code block interacts with the 'Reports' class to load depot and customer data for visualization:
 
 DB = DataBase()
-
-# Load data from the tables in the database
-DB.loadTables()
 
 # Retrieve data for the first depot and customer sets
 DepotData = DB.returnDepotData(0)

@@ -1,8 +1,13 @@
 {
   "ExpandedNodes": [
     "",
+    "\\data",
+    "\\data\\problem0",
+    "\\data\\problem1",
+    "\\data\\problem2(Unfinished)",
+    "\\data\\problem3(Unfinished)",
+    "\\data\\problem4(Unfinished)",
     "\\source_code"
   ],
-  "SelectedNode": "\\source_code\\Reports.py",
   "PreviewInSolutionExplorer": false
 }
