@@ -1,12 +1,15 @@
-﻿from ReportsDB import DataBase
-from dash import Dash, dcc, Input, Output, html
+﻿from numpy import ma
+from ReportsDB import DataBase
+from dash import Dash, dcc, html, Input, Output, State
+from GeneticAlgorithm import GeneticAlgorithm
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import plotly.graph_objects as go
 import dash_ag_grid as dag
 import pandas
 
-current_parameters = []
+# Initialise Dash app with Bootstrap theme for easier styling
+app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 DB = DataBase()
 
@@ -145,8 +148,7 @@ def create_solutions_history(problemIndex=0):
     )
 
 
-# Initialise Dash app with Bootstrap theme for easier styling
-app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+ga = GeneticAlgorithm()
 
 # Define app layout
 app.layout = dbc.Container([
@@ -166,6 +168,11 @@ app.layout = dbc.Container([
     
     # Row for main content, divided into 3 sections (left: parameters, center: map and description, right: fitness and history)
     dbc.Row([
+        # Temporary message window for parameter updates from GA object
+        html.Div(id='ga-message-display',
+                 style={"background-color": "#E8F6F3", "padding": "10px", "border-radius": "5px", 
+                        "margin-top": "10px", "min-height": "100px", "border": "1px solid black"}
+        ),
 
         # Left column for parameter settings
         dbc.Col([
@@ -174,20 +181,25 @@ app.layout = dbc.Container([
 
                 # Dropdown for choosing problem
                 html.Label("Problem to be solved and displayed", style={"margin-top": "20px"}),
-                dcc.Dropdown([ 
-                    {'label': 'Problem 1 (n customers, n depots)', 'value': 1}, 
-                    {'label': 'Problem 2 (n customers, n depots)', 'value': 2},
-                    {'label': 'Problem 3 (n customers, n depots)', 'value': 3},
-                    {'label': 'Problem 4 (n customers, n depots)', 'value': 4},
-                    {'label': 'Problem 5 (n customers, n depots)', 'value': 5}
-                ], 
-                value=1,  # Default to 'Problem 1'
-                searchable=False),  # Restrict user text input
+                dcc.Dropdown(id='problems-dropdown',
+                    options=[{'label': 'Problem 1 (n customers, n depots)', 'value': 1}, 
+                        {'label': 'Problem 2 (n customers, n depots)', 'value': 2},
+                        {'label': 'Problem 3 (n customers, n depots)', 'value': 3},
+                        {'label': 'Problem 4 (n customers, n depots)', 'value': 4},
+                        {'label': 'Problem 5 (n customers, n depots)', 'value': 5}],
+                    value=1,  # Default to 'Problem 1'
+                    searchable=False # Restrict user text input
+                ),  
 
                 # Slider for start population size
                 html.Label("Initial Population Size", style={"margin-top": "20px"}),
                 dcc.Slider(
-                    5, 50, 5,  # Range from 5 to 50, step size of 5
+                    id='population-slider',
+                    # Range from 5 to 50, step size of 5
+                    min=5,
+                    max=50,
+                    step=5,
+                    value=10, # Default to 10
                     marks=None,
                     tooltip={"placement": "bottom", "always_visible": True}
                 ),
@@ -195,7 +207,12 @@ app.layout = dbc.Container([
                 # Slider for number of iterations
                 html.Label("Number of Iterations", style={"margin-top": "20px"}),
                 dcc.Slider(
-                    10, 500,  # Range from 10 to 500, custom marks on slider
+                    id='iterations-slider',
+                    # Range from 10 to 500, custom marks on slider
+                    min=10,
+                    max=500,
+                    step=10,
+                    value=200,
                     marks={10: '10', 50: '50', 100: '100', 200: '200', 300: '300', 400: '400', 500: '500'},  
                     tooltip={"placement": "bottom", "always_visible": True}
                 ),
@@ -203,26 +220,40 @@ app.layout = dbc.Container([
                 # Slider for mutation rate
                 html.Label("Mutation Rate", style={"margin-top": "20px"}),
                 dcc.Slider(
-                    0.1, 1.0, 0.1,  # Range from 0.1 to 1.0, step size of 0.1
-                    marks=None,
+                    id='mutation-slider',
+                    # Range from 0.1 to 1.0, step size of 0.1
+                    min=0.1, max=1.0, step=0.1,
+                    value=0.5, # Default to 0.5
+                    marks=None, # Remove values underneath to allow constant value displaying
                     tooltip={"placement": "bottom", "always_visible": True}
                 ),
 
                 # Slider for Crossover Rate
                 html.Label("Crossover Rate", style={"margin-top": "20px"}),
                 dcc.Slider(
-                    0.1, 1.0, 0.1,  # Range from 0.1 to 1.0, step size of 0.1
-                    marks=None,
-                    tooltip={"placement": "bottom", "always_visible": True}
+                    id='crossover-slider',
+                    # Range from 0.1 to 1.0, step size of 0.1
+                    min=0.1, max=1.0, step=0.1,
+                    value=0.4, # Default to 0.4
+                    marks=None, # Remove values underneath to allow constant value displaying
+                    tooltip={"placement": "bottom", "always_visible": True} 
                 ),
             
                 # Dropdown for Selection Method
                 html.Label("Selection Method", style={"margin-top": "20px"}),  
-                dcc.Dropdown(['Tournament', 'Roulette'], 'Tournament', searchable=False),  # Default to 'Tournament'
+                dcc.Dropdown(
+                    id='selection-dropdown',
+                    options=[
+                        {'label': 'Tournament', 'value': 'Tournament'}, 
+                        {'label': 'Roulette', 'value': 'Roulette'}
+                    ],
+                    value='Tournament',
+                    searchable=False
+                ),
 
                 # Button to trigger the visualisation (Centered)
                 html.Div(
-                    html.Button('Run Visualisation', id='run-btn', n_clicks=0, className="btn btn-primary"),
+                    html.Button('Run Visualisation', id='run-btn', n_clicks=0, className="btn btn-primary"), # Primary action in a set of buttons
                     style={"display": "flex", "justify-content": "center", "margin-top": "20px"}  # Flexbox to center the button
                 )
             ], style={"background-color": "#F8F9FA", "padding": "20px", "border-radius": "10px"})  # Styling for parameter section
@@ -238,7 +269,8 @@ app.layout = dbc.Container([
             # Problem description section
             html.H5("Problem Description"),  
             html.Div(id="problem-description", style={"background-color": "#F8F9FA", "padding": "20px", "border-radius": "10px"})  # Placeholder for problem description
-        ], width=4),  # Adjust width for the center column
+            ], width=4
+        ),  # Adjust width for the center column
         
         # Right column for fitness graph and solutions history
         dbc.Col([
@@ -252,12 +284,49 @@ app.layout = dbc.Container([
                     
             # Solutions History
             create_solutions_history(1)
-        ], width=5),  # Adjust width for the right column
-    ], align="start"),  # Align content to the top
+            ], width=5),  # Adjust width for the right column
+        ], align="start"
+    ),  # Align content to the top
     
     html.Br(),  # Line break for spacing
 
 ], fluid=True)  # Use fluid layout for full-width display
+
+
+#Callbacks 
+
+# Callback to run GA and display the recorded parameters
+@app.callback(
+    Output("ga-message-display", "children"),  # Where to display the output
+    Input("run-btn", "n_clicks"),            # Trigger the callback by pressing the button
+    State("problems-dropdown", "value"),     # Corrected ID
+    State("population-slider", "value"),
+    State("iterations-slider", "value"),
+    State("mutation-slider", "value"),
+    State("crossover-slider", "value"),
+    State("selection-dropdown", "value"),
+    prevent_initial_call=True                # Don't run the callback when the app loads
+)
+def run_visualisation(n_clicks, problem_index, init_pop_size, num_generations,
+                      mutation_rate, crossover_rate, selection_type):
+    if n_clicks > 0:
+        # Ensure that record_parameters is called and returns the proper data
+        params = ga.record_parameters(
+            problem_index, init_pop_size, num_generations, mutation_rate, crossover_rate, selection_type
+        )
+
+        # Displaying the recorded parameters in a structured way
+        return html.Div([
+            html.H5("Recorded Parameters:"),
+            html.P(f"Problem: {params['Problem No']}"),
+            html.P(f"Initial Population Size: {params['Initial Population Size']}"),
+            html.P(f"Generations: {params['Generations']}"),
+            html.P(f"Mutation Rate: {params['Mutation Rate']}"),
+            html.P(f"Crossover Rate: {params['Crossover Rate']}"),
+            html.P(f"Selection Type: {params['Selection Type']}")
+        ])
+    else:
+        return ""  # Return an empty string if no button click is detected
 
 
 # Run the app

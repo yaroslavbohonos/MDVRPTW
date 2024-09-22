@@ -1,9 +1,8 @@
 
 class Depot():
     
-    def __init__ (self, x, y, demand, start, end):
-        self.x = x
-        y = y
-        demand = demand
-        start = start
-        end = end
+    def __init__ (self, x, y, capacity, start, end):
+        self.X = x
+        self.Y = y
+        self.CAPACITY = capacity
+        self.TW = (start, end)

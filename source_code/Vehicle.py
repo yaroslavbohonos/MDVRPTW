@@ -1,6 +1,6 @@
 
 class Vehicle():
     
-    def __init__ (self, id, capacity):
-        self.id = id
-        self.capacity = capacity
+    def __init__ (self, index, capacity):
+        self.ID = index
+        self.CAPACITY = capacity
