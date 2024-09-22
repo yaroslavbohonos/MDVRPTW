@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import dash_ag_grid as dag
 import pandas
 
+current_parameters = []
 
 DB = DataBase()
 
@@ -216,12 +217,12 @@ app.layout = dbc.Container([
                 ),
             
                 # Dropdown for Selection Method
-                html.Label("Selection Method", style={"margin-top": "20px", "margin-bottom": "20px"}),  
+                html.Label("Selection Method", style={"margin-top": "20px"}),  
                 dcc.Dropdown(['Tournament', 'Roulette'], 'Tournament', searchable=False),  # Default to 'Tournament'
 
-                # Button to trigger the visualization (Centered)
+                # Button to trigger the visualisation (Centered)
                 html.Div(
-                    html.Button('Run Visualization', id='run-btn', n_clicks=0, className="btn btn-primary"),
+                    html.Button('Run Visualisation', id='run-btn', n_clicks=0, className="btn btn-primary"),
                     style={"display": "flex", "justify-content": "center", "margin-top": "20px"}  # Flexbox to center the button
                 )
             ], style={"background-color": "#F8F9FA", "padding": "20px", "border-radius": "10px"})  # Styling for parameter section

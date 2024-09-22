@@ -2,12 +2,13 @@
   "ExpandedNodes": [
     "",
     "\\data",
-    "\\data\\problem0",
     "\\data\\problem1",
-    "\\data\\problem2(Unfinished)",
+    "\\data\\problem2",
     "\\data\\problem3(Unfinished)",
     "\\data\\problem4(Unfinished)",
+    "\\data\\problem5(Unfinished)",
     "\\source_code"
   ],
+  "SelectedNode": "\\source_code\\GeneticAlgorithm.py",
   "PreviewInSolutionExplorer": false
 }
