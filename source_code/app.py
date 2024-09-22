@@ -11,7 +11,7 @@ import pandas
 # Initialise Dash app with Bootstrap theme for easier styling
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-DB = DataBase()
+DB = DataBase() # Initialise DB as DataBase object
 
 # Add empty-coordinate objects as a visual for the legend of map
 def add_legend_only_entry(fig, name, symbol, color, size, mode='markers', line_color=None):
@@ -29,7 +29,7 @@ def add_legend_only_entry(fig, name, symbol, color, size, mode='markers', line_c
 
 # Returning a problem map figure 
 def create_vrp_map():
-    # Experimental data for with routes, customers and depots(including time windows):
+    # Experimental data with routes for customers and depots(including time windows):
     customers = [
         {"id": 1, "x": 5, "y": 10, "start_time": 9, "end_time": 16},
         {"id": 2, "x": 15, "y": 20, "start_time": 9, "end_time": 17},
@@ -51,7 +51,7 @@ def create_vrp_map():
         {"start_x": 25, "start_y": 5, "end_x": 10, "end_y": 0}
     ]
 
-    # Initialise the map
+    # Initialise map's object
     fig = go.Figure()
     
     # Change from standard blue to white background
@@ -98,11 +98,10 @@ def create_vrp_map():
     add_legend_only_entry(fig, name="Depot", symbol='square', color='green', size=15)
     add_legend_only_entry(fig, name="Customer", symbol='circle', color='blue', size=10)
     add_legend_only_entry(fig, name="Route", symbol=None, color=None, size=None, mode='lines', line_color='blue')
-    # Add a legend-only time window without a shape as bold text
+    # Add a legend-only time window with "text" shape as bold text
     add_legend_only_entry(fig, name="[Start, End] - Time Window", symbol=None, color=None, size=None, mode='text')
 
-
-    # Axes properties for map
+    # Properties of map's axes
     axis_properties = dict(
         showgrid=False,
         showticklabels=False,
@@ -119,10 +118,10 @@ def create_vrp_map():
         showlegend=True,
         legend=dict(
             orientation="h",  # Horizontal legend
-            yanchor="bottom",  # Anchor it to the bottom
-            y=-0.09,  # Position below the plot
+            yanchor="bottom",  # Anchor legend to the bottom
+            y=-0.09,  # Position legend below the plot
             xanchor="center",
-            x=0.5  # Center it horizontally
+            x=0.5  # Center legend horizontally
         ),
         margin=dict(l=10, r=10, t=30, b=80)  # Adjust margins to fit the legend
     )
@@ -130,11 +129,11 @@ def create_vrp_map():
     return fig
 
 # Create solutions history table
-def create_solutions_history(problemIndex=0):
+def create_solutions_history(problemIndex=1):
     # Fetch problem data based on index
     solutions = DB.returnSolutions(problemIndex)  # Get solutions DataFrame from the DB
 
-    # Define the column definitions
+    # Define the column titles and make them sortable
     columnDefs = [
         {"headerName": "Problem No.", "field": "ProblemID", "filter": "agNumberColumnFilter"},
         {"headerName": "Selection Type", "field": "SelectionType", "filter": "agTextColumnFilter"},
@@ -146,219 +145,198 @@ def create_solutions_history(problemIndex=0):
     
     # Create AgGrid table using solutions data
     return dag.AgGrid(
-        id="solutions_history",
+        id="solutions_history", # Reference id of the table
+        style={"margin-bottom": "20px"}, # Add space below the table
         rowData=solutions.to_dict("records"),  # Pass the solutions DataFrame as row data
         columnDefs=columnDefs,  # Use the defined columnDefs to structure the grid
-        defaultColDef={"filter": True},  # Enable filtering for all columns
-        columnSize="sizeToFit",  # Adjust columns to fit the content
-        dashGridOptions={"animateRows": False}  # Disable row animation for performance
+        # (include later except of the Problem No column)
+        defaultColDef={"filter": True},  # Enable filtering for all columns 
+        columnSize="autoSize",  # Adjust columns automatically to fit titles
+        dashGridOptions={"animateRows": False}  # Disable row animation for better performance
     )
 
-
-ga = GeneticAlgorithm()
+# Initialising the GeneticAlgorithm object as "ga"
+GA = GeneticAlgorithm()
 
 # Define app layout
 app.layout = dbc.Container([
 
-    # Row for title
+    # Row for web-application title
     dbc.Row([
         dbc.Col(
             html.H1(
                 "Visualisation of Multi-Depot Vehicle Routing Problem with Time Windows",
-                className="text-center"
+                className="text-center" # Centre the title
             ), 
-            width=12
+            width=12 # Set max width size
         )                       
     ], justify="center", style={"padding-top": "15px"}),  # Center title and add padding from top
     
     html.Hr(),  # Horizontal line separator
     
-    # Row for main content, divided into 3 sections (left: parameters, center: map and description, right: fitness and history)
+    # Row for main content, divided into 3 sections 
+    # (left: parameters, center: map and description, right: fitness and history)
     dbc.Row([
-        # Temporary message window for parameter updates from GA object
-        html.Div(id='ga-message-display',
-                 style={"background-color": "#E8F6F3", "padding": "10px", "border-radius": "5px", 
-                        "margin-top": "10px", "min-height": "100px", "border": "1px solid black"}
-        ),
-
-        # Left column for parameter settings
+        # Left column for parameter settings section
         dbc.Col([
             html.Div([
                 html.H5("Parameter Settings"),  # Section title              
 
+                # Label for dropdown and add space above
+                html.Label("Problem to be solved and displayed", style={"margin-top": "20px"}), 
                 # Dropdown for choosing problem
-                html.Label("Problem to be solved and displayed", style={"margin-top": "20px"}),
-                dcc.Dropdown(id='problems-dropdown',
-                    options=[{'label': 'Problem 1 (n customers, n depots)', 'value': 1}, 
+                dcc.Dropdown(
+                    id='problems-dropdown', # Reference id of the dropdown
+                    options=[ # Options with titles and reference values
+                        {'label': 'Problem 1 (n customers, n depots)', 'value': 1},
                         {'label': 'Problem 2 (n customers, n depots)', 'value': 2},
                         {'label': 'Problem 3 (n customers, n depots)', 'value': 3},
-                        {'label': 'Problem 4 (n customers, n depots)', 'value': 4},
+                        {'label': 'Problem 4 (n customers, n depots)', 'value': 4},  
                         {'label': 'Problem 5 (n customers, n depots)', 'value': 5}],
                     value=1,  # Default to 'Problem 1'
                     searchable=False, # Restrict user text input,
                     clearable=False  # Disable the clear option (no "x" icon)
                 ),  
 
-                # Slider for start population size
-                html.Label("Initial Population Size", style={"margin-top": "20px"}),
+                # Label for slider and add space above
+                html.Label( "Initial Population Size", style={"margin-top": "20px"}),
+                # Slider for start population size    
                 dcc.Slider(
-                    id='population-slider',
+                    id='population-slider', # Reference id of the slider
                     # Range from 5 to 50, step size of 5
-                    min=5,
-                    max=50,
-                    step=5,
+                    min=5, max=50, step=5,
                     value=10, # Default to 10
-                    marks=None,
-                    tooltip={"placement": "bottom", "always_visible": True}
+                    # Custom marks on slider allows navigate users on slider's limit
+                    marks={5: '5', 50: '50'},
+                    tooltip={"placement": "bottom", "always_visible": True} # current value constant displaying
                 ),
 
-                # Slider for number of iterations
+                # Label for slider and add space above
                 html.Label("Number of Iterations", style={"margin-top": "20px"}),
+                # Slider for number of iterations
                 dcc.Slider(
-                    id='iterations-slider',
-                    # Range from 10 to 500, custom marks on slider
-                    min=10,
-                    max=500,
-                    step=10,
-                    value=200,
+                    id='iterations-slider', # Reference id of the slider
+                    # Range from 10 to 500
+                    min=10, max=500, step=10,
+                    value=200, # Default to 200
+                    # Custom marks on slider allows navigate users on inputs and slider's limit
                     marks={10: '10', 50: '50', 100: '100', 200: '200', 300: '300', 400: '400', 500: '500'},  
-                    tooltip={"placement": "bottom", "always_visible": True}
+                    tooltip={"placement": "bottom", "always_visible": True} # current value constant displaying
                 ),
                 
-                # Slider for mutation rate
+                # Label for slider and add space above
                 html.Label("Mutation Rate", style={"margin-top": "20px"}),
+                # Slider for mutation rate
                 dcc.Slider(
-                    id='mutation-slider',
+                    id='mutation-slider', # Reference id of the slider
                     # Range from 0.1 to 1.0, step size of 0.1
-                    min=0.1, max=1.0, step=0.1,
+                    min=0.1, max=1, step=0.1,
                     value=0.5, # Default to 0.5
-                    marks=None, # Remove values underneath to allow constant value displaying
-                    tooltip={"placement": "bottom", "always_visible": True}
+                    # Custom marks on slider allows navigate users on inputs and slider's limit
+                    marks= {0.1: '0.1', 1: '1'},
+                    tooltip={"placement": "bottom", "always_visible": True, } # current value constant displaying
                 ),
 
-                # Slider for Crossover Rate
+                # Label for slider and add space above 
                 html.Label("Crossover Rate", style={"margin-top": "20px"}),
+                # Slider for Crossover Rate
                 dcc.Slider(
-                    id='crossover-slider',
+                    id='crossover-slider',  # Reference id of the slider
                     # Range from 0.1 to 1.0, step size of 0.1
-                    min=0.1, max=1.0, step=0.1,
+                    min=0.1, max=1, step=0.1,
                     value=0.4, # Default to 0.4
-                    marks=None, # Remove values underneath to allow constant value displaying
-                    tooltip={"placement": "bottom", "always_visible": True} 
+                    # Custom marks on slider allows navigate users on inputs and slider's limit
+                    marks={0.1: '0.1', 1: '1'},
+                    tooltip={"placement": "bottom", "always_visible": True} # current value constant displaying
                 ),
             
-                # Dropdown for Selection Method
+                # Label for dropdown and add space above 
                 html.Label("Selection Method", style={"margin-top": "20px"}),  
+                # Dropdown for Selection Method
                 dcc.Dropdown(
-                    id='selection-dropdown',
-                    options=[
+                    id='selection-dropdown', # Reference id of the dropdown
+                    options=[                # Options with titles and reference values
                         {'label': 'Tournament', 'value': 'Tournament'}, 
                         {'label': 'Roulette', 'value': 'Roulette'}
                     ],
-                    value='Tournament',
-                    searchable=False,
-                    clearable=False  # Disable the clear option (no "x" icon)
+                    value='Tournament', # Default to Tournament
+                    searchable=False,   # Disable search option
+                    clearable=False     # Disable the clear option (no "x" icon)
                 ),
 
                 # Button to trigger the visualisation (Centered)
                 html.Div(
-                    html.Button('Run Visualisation', id='run-btn', n_clicks=0, className="btn btn-primary"), # Primary action in a set of buttons
-                    style={"display": "flex", "justify-content": "center", "margin-top": "20px"}  # Flexbox to center the button
+                    html.Button('Run Visualisation',        # Label
+                                id='run-btn',               # Reference ID of the button 
+                                # It triggers a callback and use the value of n_clicks in your callback logic
+                                n_clicks=0,                 # Counter determines if button was pressed
+                                className="btn btn-primary" # Primary action in a set of buttons
+                    ), 
+                    # Flexbox to center the button
+                    style={"display": "flex", "justify-content": "center", "margin-top": "20px"}  
                 )
-            ], style={"background-color": "#F8F9FA", "padding": "20px", "border-radius": "10px"})  # Styling for parameter section
-        ], width=3),  # Adjust width for the left column
+            # Parameter settings styling
+            ], style={"background-color": "#F8F9FA", "padding": "20px", "border-radius": "10px"})  
+        ], width=3), # Adjust width for the left column
         
-        # Center column for the problem visualization and description
+        # Center section of problem map and description
         dbc.Col([
-            html.H5("Visualised Problem Map"),  # Section title for the problem map
-            dcc.Graph(id="problem-map", figure=create_vrp_map()),  # Placeholder for the problem map
+            html.H5("Visualised Problem Map"),   # Title 
+            dcc.Graph(
+                id="problem-map",                # Reference id of the section
+                style={"margin-bottom": "20px"}, # Add space below the map
+                figure=create_vrp_map()),        # Creating the graph of visualised problem
             
-            html.Br(),  # Line break for spacing
-            
-            # Problem description section
+            # Title
             html.H5("Problem Description"),  
-            html.Div(id="problem-description", style={"background-color": "#F8F9FA", "padding": "20px", "border-radius": "10px"})  # Placeholder for problem description
-            ], width=4
-        ),  # Adjust width for the center column
+            html.Div(
+                id="problem-description", # Reference id of the section
+                # Description styling
+                style={"background-color": "#F8F9FA", "padding": "20px", "border-radius": "10px"})
+            ], width=4                    # Set 4 out of 12 for the map and description section
+        ),
         
-        # Right column for fitness graph and solutions history
+        # Right section of fitness graph and solutions history
         dbc.Col([
             # Fitness graph section
             html.Div([
-                html.H5("Fitness Graph"),  # Section title for fitness graph
-                dcc.Graph(id="fitness-graph", figure={})  # Placeholder for fitness graph
+                html.H5("Fitness Graph"),            # Title
+                dcc.Graph(
+                    id="fitness-graph",              # Reference id of the graph
+                    style={"margin-bottom": "20px"}, # Add space below
+                    figure={})                       # Placeholder for fitness graph
             ]),
             
-            html.Br(),  # Line break for spacing
-                    
             # Solutions History
             create_solutions_history(1)
-            ], width=5),  # Adjust width for the right column
-        ], align="start"
-    ),  # Align content to the top
-    
-    html.Br(),  # Line break for spacing
+            ], width=5), # Set 5 out of 12 for the graph and solutions section
+        ], align="start" # Align content to the top
+    ),  
 
 ], fluid=True)  # Use fluid layout for full-width display
 
 
 
-# CALLBACKS - interactivity between components in Dash
+# CALLBACKS for interactivity between components in Dash
 
-# Callback to run GA and display the recorded parameters
+# Callback to run GA to record GA parameters and problem index
 @app.callback(
-    Output("ga-message-display", "children"),  # Where to display the output
-    Input("run-btn", "n_clicks"),            # Trigger the callback by pressing the button
-    State("problems-dropdown", "value"),     # Corrected ID
+    Input("run-btn", "n_clicks"),              # Trigger the callback by pressing the button
+    State("problems-dropdown", "value"),       # State: each input from the callback to a function
     State("population-slider", "value"),
     State("iterations-slider", "value"),
     State("mutation-slider", "value"),
     State("crossover-slider", "value"),
     State("selection-dropdown", "value"),
-    prevent_initial_call=True                # Don't run the callback when the app loads
+    prevent_initial_call=True                  # Don't run the callback when the app loads
 )
 def run_visualisation(n_clicks, problem_index, init_pop_size, num_generations,
                       mutation_rate, crossover_rate, selection_type):
-    if n_clicks > 0:
-        # Ensure that record_parameters is called and returns the proper data
-        params = ga.record_parameters(
-            problem_index, init_pop_size, num_generations, mutation_rate, crossover_rate, selection_type
-        )
+    # Call record_parameters and get the returned params
+    params = GA.record_parameters(
+        problem_index, init_pop_size, num_generations, mutation_rate, crossover_rate, selection_type
+    )
 
-        # Displaying the recorded parameters in a structured way
-        return html.Div([
-            html.H5("Recorded Parameters:"),
-            html.P(f"Problem: {params['Problem No']}"),
-            html.P(f"Initial Population Size: {params['Initial Population Size']}"),
-            html.P(f"Generations: {params['Generations']}"),
-            html.P(f"Mutation Rate: {params['Mutation Rate']}"),
-            html.P(f"Crossover Rate: {params['Crossover Rate']}"),
-            html.P(f"Selection Type: {params['Selection Type']}")
-        ])
-    else:
-        return ""  # Return an empty string if no button click is detected
-
-
-# Run the app
+# Run web appplication
 if __name__ == "__main__":
     app.run_server()
-
-
-"""
-The following code block interacts with the 'Reports' class to load depot and customer data for visualization:
-
-DB = DataBase()
-
-# Retrieve data for the first depot and customer sets
-DepotData = DB.returnDepotData(0)
-CustomerData = DB.returnCustomerData(0)
-
-# Example of printing depot and customer data for debugging
-print("Depots: ")
-for row in DepotData:
-    print(row)
-
-print("Customers: ")
-for row in CustomerData:
-    print(row)
-"""

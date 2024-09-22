@@ -5,6 +5,7 @@ from Vehicle import Vehicle
 from Solution import Solution
 
 class GeneticAlgorithm():
+    # Initialise GeneticAlgorithm object with its variables
     def __init__(self):
         self.problem_index = None
         self.num_generations = int
@@ -26,7 +27,6 @@ class GeneticAlgorithm():
         pass
     
     def record_parameters(self, problem_index, init_pop_size, generations, mutation_rate, crossover_rate, selection_type):
-        
         # Set the parameters based on inputs
         self.problem_index = problem_index
         self.init_pop_size = init_pop_size
@@ -34,14 +34,3 @@ class GeneticAlgorithm():
         self.mutation_prob = mutation_rate
         self.crossover_prob = crossover_rate
         self.selection_type = selection_type
-        
-        # Store the parameters in a dictionary and return it
-        params = {
-            "Problem No": self.problem_index,
-            "Initial Population Size": self.init_pop_size,
-            "Generations": self.num_generations,
-            "Mutation Rate": self.mutation_prob,
-            "Crossover Rate": self.crossover_prob,
-            "Selection Type": self.selection_type
-        }
-        return params
