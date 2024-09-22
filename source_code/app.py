@@ -13,17 +13,21 @@ app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 DB = DataBase()
 
+# Add empty-coordinate objects as a visual for the legend of map
 def add_legend_only_entry(fig, name, symbol, color, size, mode='markers', line_color=None):
     """Adds a legend-only entry (no actual data points) to the figure."""
     fig.add_trace(go.Scatter(
         x=[None], y=[None],  # No actual data point plotted
         mode=mode,
+        # Passing shape inputs as icons to the legend visual
         marker=dict(size=size, symbol=symbol, color=color) if mode == 'markers' else None,
+        # If a icon represent a line
         line=dict(color=line_color) if mode == 'lines' else None,
-        name=name,
+        name=f"<b>{name}</b>",
         showlegend=True
     ))
 
+# Returning a problem map figure 
 def create_vrp_map():
     # Experimental data for with routes, customers and depots(including time windows):
     customers = [
@@ -64,7 +68,7 @@ def create_vrp_map():
             textposition='top center',
             showlegend=False,  # Not displaying each customer in legend
             marker=dict(size=10, symbol='circle', color='blue'), # An icon for each customer
-            text=f"[{customer['start_time']}, {customer['end_time']}]"
+            text=f"<b>[{customer['start_time']}, {customer['end_time']}]</b>"
         ))
 
     # Plot depots with time windows
@@ -76,7 +80,7 @@ def create_vrp_map():
             textposition='top center',
             showlegend=False, 
             marker=dict(size=15, symbol='square', color='green'),
-            text=f"[{depot['start_time']}, {depot['end_time']}]"
+            text=f"<b>[{depot['start_time']}, {depot['end_time']}]</b>"
         ))
 
     # Plot route connection between a depot and customer(-s)
@@ -90,10 +94,13 @@ def create_vrp_map():
             name="Route",
         ))
 
-    # Add legend-only entries using the multi-figure function
+    # Add legend-only entries using the multi-figure function 
     add_legend_only_entry(fig, name="Depot", symbol='square', color='green', size=15)
     add_legend_only_entry(fig, name="Customer", symbol='circle', color='blue', size=10)
     add_legend_only_entry(fig, name="Route", symbol=None, color=None, size=None, mode='lines', line_color='blue')
+    # Add a legend-only time window without a shape as bold text
+    add_legend_only_entry(fig, name="[Start, End] - Time Window", symbol=None, color=None, size=None, mode='text')
+
 
     # Axes properties for map
     axis_properties = dict(
@@ -188,7 +195,8 @@ app.layout = dbc.Container([
                         {'label': 'Problem 4 (n customers, n depots)', 'value': 4},
                         {'label': 'Problem 5 (n customers, n depots)', 'value': 5}],
                     value=1,  # Default to 'Problem 1'
-                    searchable=False # Restrict user text input
+                    searchable=False, # Restrict user text input,
+                    clearable=False  # Disable the clear option (no "x" icon)
                 ),  
 
                 # Slider for start population size
@@ -248,7 +256,8 @@ app.layout = dbc.Container([
                         {'label': 'Roulette', 'value': 'Roulette'}
                     ],
                     value='Tournament',
-                    searchable=False
+                    searchable=False,
+                    clearable=False  # Disable the clear option (no "x" icon)
                 ),
 
                 # Button to trigger the visualisation (Centered)
@@ -293,7 +302,8 @@ app.layout = dbc.Container([
 ], fluid=True)  # Use fluid layout for full-width display
 
 
-#Callbacks 
+
+# CALLBACKS - interactivity between components in Dash
 
 # Callback to run GA and display the recorded parameters
 @app.callback(
