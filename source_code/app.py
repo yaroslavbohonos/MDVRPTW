@@ -230,10 +230,10 @@ app.layout = dbc.Container([
                 dcc.Slider(
                     id='mutation-slider', # Reference id of the slider
                     # Range from 0.1 to 1.0, step size of 0.1
-                    min=0.1, max=1, step=0.1,
+                    min=0, max=1, step=0.1,
                     value=0.5, # Default to 0.5
                     # Custom marks on slider allows navigate users on inputs and slider's limit
-                    marks= {0.1: '0.1', 1: '1'},
+                    marks= {0: '0', 1: '1'},
                     tooltip={"placement": "bottom", "always_visible": True, } # current value constant displaying
                 ),
 
@@ -243,10 +243,10 @@ app.layout = dbc.Container([
                 dcc.Slider(
                     id='crossover-slider',  # Reference id of the slider
                     # Range from 0.1 to 1.0, step size of 0.1
-                    min=0.1, max=1, step=0.1,
+                    min=0, max=1, step=0.1,
                     value=0.4, # Default to 0.4
                     # Custom marks on slider allows navigate users on inputs and slider's limit
-                    marks={0.1: '0.1', 1: '1'},
+                    marks={0: '0', 1: '1'},
                     tooltip={"placement": "bottom", "always_visible": True} # current value constant displaying
                 ),
             

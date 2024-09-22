@@ -93,7 +93,7 @@ class DataBase():
 
         # Convert DataFrame to a list of lists
         data = df.values.tolist()
-
+        
         # Close database connection
         conn.close()
 
