@@ -34,3 +34,6 @@ class GeneticAlgorithm():
         self.mutation_prob = mutation_rate
         self.crossover_prob = crossover_rate
         self.selection_type = selection_type
+
+        #self.record_problem_data()
+        

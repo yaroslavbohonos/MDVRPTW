@@ -4,12 +4,27 @@ import csv
 
 class DataBase():
     # Assign object attributes
-    def __init__(self, dbPath='./data/MDVRPTW_database.db'):
-        self.dbPath = dbPath
+    def __init__(self, dbPath = './data/MDVRPTW_database.db', 
+                 problemDataPath = './data/problem_data.csv'):
+        self.__dbPath = dbPath
+        self.__problemDataPath = problemDataPath
+        
+    # Getters
+    def getDbPath(self):
+        return self.__dbPath
+
+    def getProblemDataPath(self):
+        return self.problemDataPath
+    
+    def getCustomersDataPath(self, problemIndex):
+        return f'./data/problem{problemIndex}/customers.csv'
+
+    def getDepotsDataPath(self, problemIndex):
+        return f'./data/problem{problemIndex}/depots.csv'
 
     # Handle database connection
     def connect_db(self):
-        return sqlite3.connect(self.dbPath)
+        return sqlite3.connect(self.getDbPath())
 
     def loadTables(self):
         # Create or connect to database
@@ -17,7 +32,7 @@ class DataBase():
         cursor = conn.cursor()
         
         # Load data from CSV
-        df = pd.read_csv("./data/problem_data.csv")
+        df = pd.read_csv(self.getProblemDataPath())
         
         # Create Problems table
         cursor.execute('''
@@ -71,7 +86,7 @@ class DataBase():
 
         # Load customer data without header titles and the first index column
         # usecols uses 0-indexed column numbering
-        df = pd.read_csv(f"./data/problem{problemIndex}/customers.csv", usecols=[1, 2, 3, 4, 5], header=0)
+        df = pd.read_csv(self.getCustomersDataPath(), usecols=[1, 2, 3, 4, 5], header=0)
         
         # Convert DataFrame to a list of lists
         data = df.values.tolist()
@@ -89,7 +104,7 @@ class DataBase():
         cursor = conn.cursor()
 
         # Load depot data without header titles and the first index
-        df = pd.read_csv(f"./data/problem{problemIndex}/depots.csv", usecols=[1, 2, 3, 4, 5], header=0)
+        df = pd.read_csv(self.getDepotsDataPath(), usecols=[1, 2, 3, 4, 5], header=0)
 
         # Convert DataFrame to a list of lists
         data = df.values.tolist()
