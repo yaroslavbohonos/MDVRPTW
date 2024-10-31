@@ -15,6 +15,8 @@ DB = DataBase() # Initialise DB as DataBase object
 
 DB.loadTables()
 
+GA = GeneticAlgorithm()
+
 # Add empty-coordinate objects as a visual for the legend of map
 def add_legend_only_entry(fig, name, symbol, color, size, mode='markers', line_color=None):
     """Adds a legend-only entry (no actual data points) to the figure."""
