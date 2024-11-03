@@ -7,45 +7,45 @@ class Problem():
     def __init__(self):
         self.customers = []
         self.depots = []
-        self.num_customers = 0
-        self.num_depots = 0
-        self.tw_range = []
-        self.dist_matrix = None
+        self.numCustomers = 0
+        self.numDepots = 0
+        self.twRange = []
+        self.distMatrix = None
         
 
-    def calculate_pythagoras(x1, x2, y1, y2):
-        return np.sqrt( (x1 - x2)**2 + (y1 * y2)**2 )
+    def calculatePythagoras(x1, x2, y1, y2):
+        return np.sqrt( (x1 - x2)**2 + (y1 - y2)**2 )
 
 
-    def calculate_dist_matrix(self):
+    def calculateDistMatrix(self):
         points = self.depots + self.customers
-        dist_matrix = np.zeros(points, points)        
-
+        distMatrix = np.zeros(points, points)        
         for i in range(points):
             for j in range(points):
-                dist_matrix[i][j] = self.calculate_pythagoras(points[i].x, points[j].x, points[i].y, points[j].y)
-        return dist_matrix     
+                distMatrix[i][j] = self.calculatePythagoras(points[i].X, points[j].X, points[i].Y, points[j].Y)
+        self.distMatrix = distMatrix     
 
     
-    def calculate_tw_range(self):
-        self.tw_range[0] = min(self.depots, key=lambda x: x[4])
-        self.tw_range[1] = max(self.depots, key=lambda x: x[4])
+    def calculateTwRrange(self):
+        minTW = min([depot.TW[0] for depot in self.depots])
+        maxTW = max([depot.TW[1] for depot in self.depots])
+        self.twRange = [minTW, maxTW]
         
 
-    def record_problem_data(self):
+    def recordProblemData(self):
         from app import GA, DB
-        problem_index = GA.curr_problem_index()
+        problemIndex = GA.currProblemIndex()
         
-        depots = DB.returnDepotData(problem_index)
+        depots = DB.returnDepotData(problemIndex)
         for depot in depots:
             self.depots.append(Depot(depot[0], depot[1], depot[2], depot[3], depot[4]) )
         
-        customers = DB.returnCustomerData(problem_index)
+        customers = DB.returnCustomerData(problemIndex)
         for customer in customers:
             self.customers.append(Customer(customer[0], customer[1], customer[2], customer[3], customer[4]) )
 
-        self.num_customers = len(customers)
-        self.num_depots = len(depots)
+        self.numCustomers = len(customers)
+        self.numDepots = len(depots)
         
-        self.dist_matrix = self.calculate_dist_matrix()   
-        self.tw_range = self.calculate_tw_range()
+        self.calculateDistMatrix()   
+        self.calculateTwRange()
