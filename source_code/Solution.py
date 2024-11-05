@@ -9,4 +9,6 @@ class Solution():
     # For heapq insert comparison
     def __lt__(self, other):
         return self.fitness < other.fitness
+    
+    
          

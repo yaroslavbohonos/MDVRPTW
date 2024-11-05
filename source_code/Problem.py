@@ -11,18 +11,20 @@ class Problem():
         self.numDepots = 0
         self.twRange = []
         self.distMatrix = None
-        
 
+    @staticmethod
     def calculatePythagoras(x1, x2, y1, y2):
         return np.sqrt( (x1 - x2)**2 + (y1 - y2)**2 )
 
 
     def calculateDistMatrix(self):
         points = self.depots + self.customers
-        distMatrix = np.zeros(points, points)        
-        for i in range(points):
-            for j in range(points):
+        pointsNumber = len(points)
+        distMatrix = np.zeros((pointsNumber, pointsNumber))        
+        for i in range(pointsNumber):
+            for j in range(pointsNumber):
                 distMatrix[i][j] = self.calculatePythagoras(points[i].X, points[j].X, points[i].Y, points[j].Y)
+                #print(f"[i,j] [{i,j}]")
         self.distMatrix = distMatrix     
 
     
@@ -32,20 +34,24 @@ class Problem():
         self.twRange = [minTW, maxTW]
         
 
-    def recordProblemData(self):
-        from app import GA, DB
-        problemIndex = GA.currProblemIndex()
+    def recordProblemData(self, GA, DB):
+        problemIndex = GA.currProblemIndex
+        #print(f"Current problem index recorded: {problemIndex}")
         
         depots = DB.returnDepotData(problemIndex)
         for depot in depots:
-            self.depots.append(Depot(depot[0], depot[1], depot[2], depot[3], depot[4]) )
+            self.depots.append(Depot(depot[0], depot[1], depot[2], depot[3], depot[4], depot[5]))
         
+        #print(f"Depots populated: {self.depots}")  # Debug statement
+
         customers = DB.returnCustomerData(problemIndex)
         for customer in customers:
-            self.customers.append(Customer(customer[0], customer[1], customer[2], customer[3], customer[4]) )
+            self.customers.append(Customer(len(depots) + customer[0], customer[1], customer[2], customer[3], customer[4], customer[5]) )
+
+        #print(f"Customers populated: {self.customers}")  # Debug statement
 
         self.numCustomers = len(customers)
         self.numDepots = len(depots)
         
         self.calculateDistMatrix()   
-        self.calculateTwRange()
+        self.calculateTwRrange()

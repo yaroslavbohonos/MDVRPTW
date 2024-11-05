@@ -95,7 +95,7 @@ class DataBase():
         if self.isPathExist(self.getCustomersDataPath(problemIndex)):
             # Load customer data without header titles and the first index column
             # usecols uses 0-indexed column numbering
-            df = pd.read_csv(self.getCustomersDataPath(problemIndex), usecols=[1, 2, 3, 4, 5], header=0)
+            df = pd.read_csv(self.getCustomersDataPath(problemIndex), usecols=[0, 1, 2, 3, 4, 5], header=0)
         
             # Convert DataFrame to a list of lists
             data = df.values.tolist()
@@ -109,7 +109,7 @@ class DataBase():
         
         if self.isPathExist(self.getDepotsDataPath(problemIndex)):
             # Read depots data and create DataFrame object
-            df = pd.read_csv(self.getDepotsDataPath(problemIndex), usecols=[1, 2, 3, 4, 5], header=0)
+            df = pd.read_csv(self.getDepotsDataPath(problemIndex), usecols=[0, 1, 2, 3, 4, 5], header=0)
 
             # Convert DataFrame to a list of lists
             data = df.values.tolist()

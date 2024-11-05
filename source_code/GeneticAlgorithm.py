@@ -3,7 +3,7 @@ from Problem import Problem
 from random import shuffle
 from Solution import Solution
 from Vehicle import Vehicle
-import heapq, random
+import heapq, random, copy
 
 class GeneticAlgorithm(Problem):
     # Initialise GeneticAlgorithm object with its variables
@@ -15,15 +15,19 @@ class GeneticAlgorithm(Problem):
         self.mutationProb = None
         self.crossoverProb = None
         self.initPopSize = None
-        self.MAX_POP_SIZE = 100
+        self.MAX_POP_SIZE = 50
         self.vehicles = []
         self.bestSolution = None
+        self.currentSol = None
         self.fitness_values = []
         self.PENALTY = 1.4
         self.population = []
+        self.minDistToIteration = [] 
+        #self.minDistToIteration = {"1":"None"} # Min distance up to the iterationNo ["IterNo" : "min. dist."]
      
-    def record_parameters(self, problemIndex, initPopSize, generations, mutationProb, crossoverProb, selectionType):
+    def recordParameters(self, problemIndex, initPopSize, generations, mutationProb, crossoverProb, selectionType):
         # Set parameters based on inputs
+        print(f"Recording parameters: problemIndex={problemIndex}, initPopSize={initPopSize}, generations={generations}, mutationProb={mutationProb}, crossoverProb={crossoverProb}, selectionType={selectionType}")
         self.currProblemIndex = problemIndex
         self.initPopSize = initPopSize
         self.numGenerations = generations
@@ -31,11 +35,29 @@ class GeneticAlgorithm(Problem):
         self.crossoverProb = crossoverProb
         self.selectionType = selectionType    
 
+    def calculateArrivalTime(self, stop1, stop2):
+        arrivesAt = max(stop1.TW[0], stop2.TW[0])
+        if arrivesAt <= stop2.TW[1]:
+            stop2.arrivesAt = arrivesAt
+        else:
+            stop2.arrives = None
+
+    def calculateRouteArrivalTimes(self, route):
+        for i in range(1, len(route) - 1):
+            stop1 = route[i - 1]
+            stop2 = route[i]
+            self.calculateArrivalTime(stop1, stop2)
+
     def isFeasibleTW(self, stop1, stop2):  
-        return stop1.TW[0] < stop2.TW[0] or stop1.TW[1] < stop2.TW[1]
+        self.calculateArrivalTime(stop1, stop2)
+        if stop2.arrivesAt == None:
+            return False
+        else:
+            return stop2.TW[0] <= stop2.arrivesAt <= stop2.TW[1]
 
     def isFeasible(self, sol):
         for route in sol.routes:
+            self.calculateRouteArrivalTimes(route)
             depot = route[0]
             routeCapacity = 0
             for customer in route[1:-1]:
@@ -52,28 +74,28 @@ class GeneticAlgorithm(Problem):
     
     # To do: apply caching for repeated distances
     def calculateFitness(self, sol):
-        total_distance = 0
-        for depotRoutes in sol.routes:
-            for route in depotRoutes:
-                distance = 0
-                for i in range(0, len(route)):
-                    totalDistance += super().distMatrix[route[i]][route[i + 1]]
-                totalDistance += distance
-        if not sol.isFeasible:
-            totalDistance *= self.PENALTY
+        totalDistance = 0
+        for route in sol.routes:
+            distance = 0
+            for i in range(len(route)-1):
+                #print(f"Accessing distMatrix at indices: {route[i]}, {route[i + 1]}")
+                totalDistance += self.distMatrix[route[i].ID][route[i + 1].ID]
+            totalDistance += distance
+        #if not sol.isFeasible:
+        #    totalDistance *= self.PENALTY
         return totalDistance
         
     # To do: think how I can get rid of removing customers 
     def createSolution(self):
         solutionRoutes = []
-        customers = super().self.customers.copy()
-        depots = super().self.depots.copy()
+        #print(f"createSolution, customers available: {self.customers}")
+        customers = self.customers.copy()
+        depots = self.depots.copy()
         shuffle(customers)
         
         while customers:
-            depotRoutes=[]
-            depot= depots[random.randint(0, super().numDepots-1)]
-            vehicle = Vehicle(id=len(depotRoutes), CAPACITY=depot.CAPACITY)
+            depot= depots[random.randint(0, self.numDepots-1)]
+            vehicle = Vehicle(len(solutionRoutes), depot.CAPACITY)
             route = [depot]
             routeCapacity=0
             
@@ -85,30 +107,44 @@ class GeneticAlgorithm(Problem):
 
             route.append(depot)
             if len(route) > 2:  # Only add routes with customers
-                depotRoutes.append(route)
+                solutionRoutes.append(route)
 
-            solutionRoutes.append(depotRoutes)
         sol = Solution(solutionRoutes, None, None)
         sol.fitness = self.calculateFitness(sol)
         sol.isFeasible = self.isFeasible(sol)
-        return sol
-        
-                    
-    def createPopulation(self, size):
-        for _ in range(size):
-            heapq.heappush(self.population, self.createSolution())
-    
+        return sol 
 
+    def addToPopulation(self, solution):
+        if solution is not None:
+            self.population.append(solution)
+            self.population.sort(key=lambda sol: sol.fitness)
+            
+            if len(self.population) > self.MAX_POP_SIZE:
+                for _ in range(len(self.population) - self.initPopSize):
+                    self.population.pop()
+
+        print(f"Population size: {len(self.population)}")
+        #print(f"Best fitness: {self.population[0].fitness}, Worst fitness: {self.population[-1].fitness}")
+    
+    def createPopulation(self):
+        self.population = []  # Reset population
+        for _ in range(self.initPopSize):
+            self.addToPopulation(self.createSolution())
+    
+    
     def binaryTournament(self):
-        sol1 = self.population[random.randint(0, len(self.population) // 4)]
-        sol2 = self.population[random.randint(len(self.population) // 4, len(self.population)//2 - 1)]
+        sol1 = self.population[0]
+        sol2 = self.population[1]
         if sol1.fitness < sol2.fitness:
-            return sol1
+            self.currentSol = sol1
         else:
-            return sol2    
+            self.currentSol = sol2
 
     def crossover(self):
-        sol = self.population[random.randint(0, len(self.population) - 1)]
+        sol = self.currentSol
+        #sol = self.population[random.randint(0, len(self.population) - 1)]
+        if len(sol.routes) <= 2: # 
+            return
         parent1, parent2 = random.sample(sol.routes[1:-1], 2) # Generates two non-repating routes
         sol1Size = len(parent1)
         sol2Size = len(parent2)
@@ -122,82 +158,89 @@ class GeneticAlgorithm(Problem):
         sol.routes[sol.routes.index(parent1)] = child1
         sol.routes[sol.routes.index(parent2)] = child2
         sol.fitness = self.calculateFitness(sol)
-        sol.isFeasible = self.isFeasible(sol)    
-    
+        sol.isFeasible = self.isFeasible(sol)   
+        self.currentSol = sol       
+
     def isGoodSwap(self, cust1, cust2, route1, route2, sol):
         # To do:  implement later for efficient calculation
         pass
 
-    def localSearch(self, sol, totalNumAttempts, attemptsNumCustomer):
-        bestSol=sol
-        totalAttempts=0
-        customers = super().self.customers.copy()
-        routesToCheck = random.sample(sol.routes, super().self.numCustomers//6 - 1)     
-        
+    def localSearch(self):
+        totalNumAttempts = 40
+        attemptsNumCustomer = 5
+        bestLocalSol = copy.deepcopy(self.currentSol)
+        sol = self.currentSol
+        totalAttempts = 0
+        customers = self.customers.copy()
+
+        routesToCheck = random.sample(sol.routes, min(len(sol.routes), max(1, self.numCustomers // 6 - 1)))
+
         for cust1Route in routesToCheck:
             if totalAttempts > totalNumAttempts:
                 break
-            
+
             cust1 = random.choice(cust1Route[1:-1])
             for _ in range(attemptsNumCustomer):
                 cust2 = random.choice(customers)
                 if cust1 == cust2:
                     continue  
+
                 cust2Route = None
                 for route in sol.routes:
                     if cust2 in route:
-                        cust2_route = route
+                        cust2Route = route
                         break
-                
+
                 cust1Index = cust1Route.index(cust1)
                 cust2Index = cust2Route.index(cust2)
-                
-                cust1Route[cust1Index]=cust2
-                cust2Route[cust2Index]=cust1
-                
+                cust1Route[cust1Index] = cust2
+                cust2Route[cust2Index] = cust1
                 sol.isFeasible = self.isFeasible(sol)
                 sol.fitness = self.calculateFitness(sol)
 
-                if sol.isFeasible or sol.fitness < bestSol.fitness:
-                    bestSol = sol
-                else:
-                    cust1Route[cust1Index]=cust1
-                    cust2Route[cust2Index]=cust2
+                if sol.isFeasible and sol.fitness < bestLocalSol.fitness:
+                    bestLocalSol = copy.deepcopy(sol)
+                
+                cust1Route[cust1Index] = cust1
+                cust2Route[cust2Index] = cust2
                 totalAttempts += 1
-                
-        sol.routes = bestSol.routes
-        sol.fitness = bestSol.fitness
-        sol.isFeasible = bestSol.isFeasible
 
+        return bestLocalSol
 
-    def makeFeasible(self, sol):
-        for route1 in sol.routes:
-            depot = route1[0]
-            tempRoute = route1.copy()
-        
-            while sum(c.DEMAND for c in route1[1:-1]) > depot.CAPACITY:
-                customer = max(route1[1:-1], key=lambda c: c.DEMAND)
-                route1.remove(customer)
-                
+    def makeFeasible(self):
+        sol = self.currentSol
+        for route in sol.routes:
+            depot = route[0]
+            currentDemand = sum(c.DEMAND for c in route[1:-1])
+
+            while currentDemand > depot.CAPACITY:
+                customerToRemove = max(route[1:-1], key=lambda c: c.DEMAND)
+                route.remove(customerToRemove)
+                currentDemand -= customerToRemove.DEMAND
+            
                 reassigned = False
-                for route2 in sol.routes:
-                    if route2[0] != depot and self.canFitInRoute(customer, route2):
-                        route2.insert(-1, customer)
+                for otherRoute in sol.routes:
+                    if otherRoute[0] != depot and self.canFitInRoute(customerToRemove, otherRoute):
+                        otherRoute.insert(-1, customerToRemove)  # Add to the end before the depot
                         reassigned = True
                         break
-                if not reassigned:
-                    sol.routes.extend([depot, customer, depot])
-
-            feasible_route = [depot]
-            for i, customer in enumerate(route1[1:-1]):
-                if self.isFeasibleCustomerTW(depot, customer) and (i == 0 or feasible_route[-1].TW[1] <= customer.TW[0]):
-                    feasible_route.append(customer)
-            feasible_route.append(depot)
             
-            route1[:] = feasible_route if len(feasible_route) == len(route1) else tempRoute
+                if not reassigned:
+                    newRoute = [depot, customerToRemove, depot]
+                    sol.routes.append(newRoute)
 
-        sol.isFeasible = self.isFeasible(sol)
-        sol.fitness = self.calculateFitness(sol)
+            feasibleRoute = [depot]
+            for customer in route[1:-1]:
+                if self.isFeasibleTW(depot, customer):
+                    feasibleRoute.append(customer)
+                    depot = customer  # Update depot to the last customer to check time window
+            feasibleRoute.append(depot)
+
+            route[:] = feasibleRoute if len(feasibleRoute) > 1 else [depot]
+
+        self.currentSol.routes = sol.routes
+        self.currentSol.isFeasible = self.isFeasible(sol)
+        self.currentSol.fitness = self.calculateFitness(sol)
         
     def canFitInRoute(self, customer, route):
         depot = route[0]
@@ -206,9 +249,35 @@ class GeneticAlgorithm(Problem):
           
 
     def evolvePopulation(self):
-        pass
-    
+        self.createPopulation()
+        
+        if not self.population:
+            raise ValueError("Population is empty. Ensure `createSolution` and `createPopulation` methods are functioning correctly.")
 
+        self.currentSol = self.population[0]
+        self.makeFeasible()
+        self.bestSolution = self.currentSol
+
+        for generation in range(self.numGenerations + 1):
+            self.binaryTournament()
+            
+            if random.random() < self.crossoverProb: 
+                self.crossover()
+            
+            improved_solution = self.localSearch()
+        
+            if improved_solution.isFeasible and improved_solution.fitness < self.bestSolution.fitness:
+                self.bestSolution = copy.deepcopy(improved_solution) 
+                
+            #if generation % 10 == 0:
+            self.makeFeasible()
+            self.addToPopulation(self.currentSol)
+            
+            if improved_solution.isFeasible and improved_solution.fitness < self.bestSolution.fitness:
+                self.bestSolution = improved_solution
+            
+            print(f"Generation {generation}: Best fitness {self.bestSolution.fitness}")
+        
 """
 To do:
 - Think how I can speed up generating random numbers 

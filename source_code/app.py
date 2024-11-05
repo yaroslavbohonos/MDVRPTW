@@ -337,9 +337,9 @@ app.layout = dbc.Container([
 def run_visualisation(n_clicks, problem_index, init_pop_size, num_generations,
                       mutation_rate, crossover_rate, selection_type):
     # Call record_parameters and get the returned params
-    params = GA.record_parameters(
-        problem_index, init_pop_size, num_generations, mutation_rate, crossover_rate, selection_type
-    )
+    params = GA.recordParameters(problem_index, init_pop_size, num_generations, mutation_rate, crossover_rate, selection_type)
+    GA.recordProblemData(GA, DB)
+    GA.evolvePopulation()
 
 # Run web appplication
 if __name__ == "__main__":
