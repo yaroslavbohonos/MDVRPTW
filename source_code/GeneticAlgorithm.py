@@ -1,9 +1,12 @@
 from ReportsDB import DataBase
 from Problem import Problem
-from random import shuffle
 from Solution import Solution
+from Customer import Customer
+from Depot import Depot
 from Vehicle import Vehicle
+from random import shuffle
 import heapq, random, copy
+
 
 class GeneticAlgorithm(Problem):
     # Initialise GeneticAlgorithm object with its variables
@@ -15,32 +18,59 @@ class GeneticAlgorithm(Problem):
         self.mutationProb = None
         self.crossoverProb = None
         self.initPopSize = None
-        self.MAX_POP_SIZE = 50
-        self.vehicles = []
+        self.MAX_POP_SIZE = 100
+        self.PENALTY = 1.4
         self.bestSolution = None
         self.currentSol = None
-        self.fitness_values = []
-        self.PENALTY = 1.4
+        self.bestSolutions = {}
         self.population = []
-        self.minDistToIteration = [] 
-        #self.minDistToIteration = {"1":"None"} # Min distance up to the iterationNo ["IterNo" : "min. dist."]
-     
+        self.isdataRecorded = False
+
+
     def recordParameters(self, problemIndex, initPopSize, generations, mutationProb, crossoverProb, selectionType):
         # Set parameters based on inputs
-        print(f"Recording parameters: problemIndex={problemIndex}, initPopSize={initPopSize}, generations={generations}, mutationProb={mutationProb}, crossoverProb={crossoverProb}, selectionType={selectionType}")
+        if problemIndex != self.currProblemIndex and self.currProblemIndex != None:
+            self.isdataRecorded = False
         self.currProblemIndex = problemIndex
         self.initPopSize = initPopSize
         self.numGenerations = generations
         self.mutationProb = mutationProb
         self.crossoverProb = crossoverProb
-        self.selectionType = selectionType    
+        self.selectionType = selectionType
+        print(f"Problem index recorded {problemIndex}")
+        
+
+    def recordProblemData(self, DB):
+        if not self.isdataRecorded:
+            self.customers=[]
+            self.depots=[]
+            self.bestSolutions = {}
+            problemIndex = self.currProblemIndex
+        
+            depots = DB.returnDepotData(problemIndex)
+            for depot in depots:
+                self.depots.append(Depot(depot[0], depot[1], depot[2], depot[3], depot[4], depot[5]))
+        
+            #print(f"Depots populated: {self.depots}")  # Debug statement
+
+            customers = DB.returnCustomerData(problemIndex)
+            for customer in customers:
+                self.customers.append(Customer(len(depots) + customer[0], customer[1], customer[2], customer[3], customer[4], customer[5]) )
+
+            #print(f"Customers populated: {self.customers}")  # Debug statement
+
+            self.numCustomers = len(customers)
+            self.numDepots = len(depots)
+        
+            self.calculateDistMatrix()
+            self.calculateTwRrange()
+            self.dataRecorded = True
+
 
     def calculateArrivalTime(self, stop1, stop2):
         arrivesAt = max(stop1.TW[0], stop2.TW[0])
         if arrivesAt <= stop2.TW[1]:
             stop2.arrivesAt = arrivesAt
-        else:
-            stop2.arrives = None
 
     def calculateRouteArrivalTimes(self, route):
         for i in range(1, len(route) - 1):
@@ -48,12 +78,14 @@ class GeneticAlgorithm(Problem):
             stop2 = route[i]
             self.calculateArrivalTime(stop1, stop2)
 
+
     def isFeasibleTW(self, stop1, stop2):  
         self.calculateArrivalTime(stop1, stop2)
         if stop2.arrivesAt == None:
             return False
         else:
             return stop2.TW[0] <= stop2.arrivesAt <= stop2.TW[1]
+
 
     def isFeasible(self, sol):
         for route in sol.routes:
@@ -68,10 +100,12 @@ class GeneticAlgorithm(Problem):
                     return False
         return True
 
+
     def isFeasibleTwoRoutes(self, sol, route1, route2):
         # To do: implement later for efficient calculation
         pass
     
+
     # To do: apply caching for repeated distances
     def calculateFitness(self, sol):
         totalDistance = 0
@@ -81,10 +115,11 @@ class GeneticAlgorithm(Problem):
                 #print(f"Accessing distMatrix at indices: {route[i]}, {route[i + 1]}")
                 totalDistance += self.distMatrix[route[i].ID][route[i + 1].ID]
             totalDistance += distance
-        #if not sol.isFeasible:
-        #    totalDistance *= self.PENALTY
+        if not sol.isFeasible:
+            totalDistance *= self.PENALTY
         return totalDistance
         
+
     # To do: think how I can get rid of removing customers 
     def createSolution(self):
         solutionRoutes = []
@@ -95,18 +130,18 @@ class GeneticAlgorithm(Problem):
         
         while customers:
             depot= depots[random.randint(0, self.numDepots-1)]
-            vehicle = Vehicle(len(solutionRoutes), depot.CAPACITY)
+            #vehicle = Vehicle(len(solutionRoutes), depot.CAPACITY)
             route = [depot]
-            routeCapacity=0
+            routeCapacity = 0
             
             for customer in customers:
-                if routeCapacity + customer.DEMAND <= vehicle.CAPACITY:
+                if (routeCapacity + customer.DEMAND) <= depot.CAPACITY:
                     route.append(customer)
                     routeCapacity += customer.DEMAND
                     customers.remove(customer)
 
             route.append(depot)
-            if len(route) > 2:  # Only add routes with customers
+            if len(route) > 2:  # Add routes with customers
                 solutionRoutes.append(route)
 
         sol = Solution(solutionRoutes, None, None)
@@ -114,21 +149,22 @@ class GeneticAlgorithm(Problem):
         sol.isFeasible = self.isFeasible(sol)
         return sol 
 
-    def addToPopulation(self, solution):
-        if solution is not None:
-            self.population.append(solution)
-            self.population.sort(key=lambda sol: sol.fitness)
-            
-            if len(self.population) > self.MAX_POP_SIZE:
-                for _ in range(len(self.population) - self.initPopSize):
-                    self.population.pop()
 
-        print(f"Population size: {len(self.population)}")
+    def addToPopulation(self, solution):
+        self.population.append(solution)
+        self.population.sort(key=lambda sol: sol.fitness)
+            
+        if len(self.population) > self.MAX_POP_SIZE:
+            for _ in range(len(self.population) - self.initPopSize):
+                self.population.pop()
+
+        #print(f"Population size: {len(self.population)}")
         #print(f"Best fitness: {self.population[0].fitness}, Worst fitness: {self.population[-1].fitness}")
     
+
     def createPopulation(self):
         self.population = []  # Reset population
-        for _ in range(self.initPopSize):
+        for _ in range(self.initPopSize - 1):
             self.addToPopulation(self.createSolution())
     
     
@@ -140,51 +176,52 @@ class GeneticAlgorithm(Problem):
         else:
             self.currentSol = sol2
 
+
     def crossover(self):
         sol = self.currentSol
-        #sol = self.population[random.randint(0, len(self.population) - 1)]
-        if len(sol.routes) <= 2: # 
+        if len(sol.routes) < 2: # Skip if only one route in a solution
             return
         parent1, parent2 = random.sample(sol.routes[1:-1], 2) # Generates two non-repating routes
         sol1Size = len(parent1)
         sol2Size = len(parent2)
-        # Avoid crossover if routes are too short. Assume size of population always > 1
+        # Avoid crossover if routes are too short. Assume the size of population always > 1
         if sol1Size <= 3 or sol2Size <= 3:
             return
+        # Swap two segments between 2 routes
         point1 = random.randint(1, sol1Size - 2)
         point2 = random.randint(1, sol2Size - 2)
         child1 = parent1[:point1] + parent2[point2:-1] + [parent1[-1]]
         child2 = parent2[:point2] + parent1[point1:-1] + [parent2[-1]]
+        # Update current solution details
         sol.routes[sol.routes.index(parent1)] = child1
         sol.routes[sol.routes.index(parent2)] = child2
         sol.fitness = self.calculateFitness(sol)
         sol.isFeasible = self.isFeasible(sol)   
-        self.currentSol = sol       
+        self.currentSol = sol
+
 
     def isGoodSwap(self, cust1, cust2, route1, route2, sol):
         # To do:  implement later for efficient calculation
         pass
 
+
     def localSearch(self):
-        totalNumAttempts = 40
-        attemptsNumCustomer = 5
+        totalNumAttempts = 10000
+        attemptsNumCustomer = 15
         bestLocalSol = copy.deepcopy(self.currentSol)
         sol = self.currentSol
         totalAttempts = 0
         customers = self.customers.copy()
-
         routesToCheck = random.sample(sol.routes, min(len(sol.routes), max(1, self.numCustomers // 6 - 1)))
 
         for cust1Route in routesToCheck:
             if totalAttempts > totalNumAttempts:
                 break
-
             cust1 = random.choice(cust1Route[1:-1])
             for _ in range(attemptsNumCustomer):
                 cust2 = random.choice(customers)
                 if cust1 == cust2:
                     continue  
-
                 cust2Route = None
                 for route in sol.routes:
                     if cust2 in route:
@@ -200,12 +237,11 @@ class GeneticAlgorithm(Problem):
 
                 if sol.isFeasible and sol.fitness < bestLocalSol.fitness:
                     bestLocalSol = copy.deepcopy(sol)
-                
                 cust1Route[cust1Index] = cust1
                 cust2Route[cust2Index] = cust2
                 totalAttempts += 1
-
         return bestLocalSol
+
 
     def makeFeasible(self):
         sol = self.currentSol
@@ -221,7 +257,7 @@ class GeneticAlgorithm(Problem):
                 reassigned = False
                 for otherRoute in sol.routes:
                     if otherRoute[0] != depot and self.canFitInRoute(customerToRemove, otherRoute):
-                        otherRoute.insert(-1, customerToRemove)  # Add to the end before the depot
+                        otherRoute.insert(-1, customerToRemove)  # Add before the last depot
                         reassigned = True
                         break
             
@@ -242,6 +278,7 @@ class GeneticAlgorithm(Problem):
         self.currentSol.isFeasible = self.isFeasible(sol)
         self.currentSol.fitness = self.calculateFitness(sol)
         
+
     def canFitInRoute(self, customer, route):
         depot = route[0]
         capacity = sum(c.DEMAND for c in route[1:-1])
@@ -250,34 +287,34 @@ class GeneticAlgorithm(Problem):
 
     def evolvePopulation(self):
         self.createPopulation()
-        
-        if not self.population:
-            raise ValueError("Population is empty. Ensure `createSolution` and `createPopulation` methods are functioning correctly.")
 
         self.currentSol = self.population[0]
         self.makeFeasible()
         self.bestSolution = self.currentSol
+        self.bestSolutions[0] = self.bestSolution
 
-        for generation in range(self.numGenerations + 1):
+        for generation in range(1, self.numGenerations + 1):
             self.binaryTournament()
             
-            if random.random() < self.crossoverProb: 
+            if random.random() < self.crossoverProb: # A number between 0.0 and 1.0
                 self.crossover()
             
-            improved_solution = self.localSearch()
-        
-            if improved_solution.isFeasible and improved_solution.fitness < self.bestSolution.fitness:
-                self.bestSolution = copy.deepcopy(improved_solution) 
+            improvedSolution = self.localSearch()
                 
-            #if generation % 10 == 0:
-            self.makeFeasible()
+            # every fifth generation the current sol. will be made feasible
+            if generation % 5 == 0: 
+                self.makeFeasible()
             self.addToPopulation(self.currentSol)
             
-            if improved_solution.isFeasible and improved_solution.fitness < self.bestSolution.fitness:
-                self.bestSolution = improved_solution
+            if improvedSolution.isFeasible and improvedSolution.fitness < self.bestSolution.fitness:
+                self.bestSolution = improvedSolution
+                self.bestSolutions[generation] = self.bestSolution
             
-            print(f"Generation {generation}: Best fitness {self.bestSolution.fitness}")
+            #print(f"Generation {generation}: Best fitness {self.bestSolution.fitness}")
         
+        for generation in self.bestSolutions:
+            print(f"Generation: {generation}: Best fitness {self.bestSolutions[generation].fitness}")
+
 """
 To do:
 - Think how I can speed up generating random numbers 

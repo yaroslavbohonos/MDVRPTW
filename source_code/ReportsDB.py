@@ -2,6 +2,7 @@ import pandas as pd
 import sqlite3
 import csv
 import os
+from datetime import date, datetime
 
 class DataBase():
     # Assign object attributes
@@ -40,10 +41,8 @@ class DataBase():
         # Create if path does not exists or connect to database
         conn = sqlite3.connect(self.getDbPath())
         cursor = conn.cursor()
-        
         # Load data from CSV
-        df = pd.read_csv(self.getProblemDataPath())
-        
+        df = pd.read_csv(self.getProblemDataPath()) 
         # Create Problems table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS Problems (
@@ -54,7 +53,6 @@ class DataBase():
                 FileName TEXT NOT NULL
             )
         ''')
-    
         # Create Solutions table, with a foreign key to 'Problems'
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS Solutions (
@@ -68,22 +66,17 @@ class DataBase():
                 FOREIGN KEY (ProblemID) REFERENCES Problems(ProblemID)
             )
         ''')
-
         # Load CSV data into Problems table
         df.to_sql('Problems', conn, if_exists='replace', index=False)
-
-        
         # Add test data to Solutions table
         solutions_data = [
             # (1, 'Roulette Wheel', 0.1, 123.45, '2024-09-15', '12:30'),
             # (1, 'Tournament', 0.15, 130.78, '2024-09-16', '12:35')
         ]
-        
         cursor.executemany('''
             INSERT INTO Solutions (ProblemID, SelectionType, MutationProb, Distance, Date, Time)
             VALUES (?, ?, ?, ?, ?, ?)
         ''', solutions_data)
-
         # Commit and close database connection
         conn.commit()
         conn.close()
@@ -96,7 +89,6 @@ class DataBase():
             # Load customer data without header titles and the first index column
             # usecols uses 0-indexed column numbering
             df = pd.read_csv(self.getCustomersDataPath(problemIndex), usecols=[0, 1, 2, 3, 4, 5], header=0)
-        
             # Convert DataFrame to a list of lists
             data = df.values.tolist()
             return data
@@ -106,11 +98,9 @@ class DataBase():
 
     def returnDepotData(self, problemIndex: int): 
         """ 1-indexed index notation """
-        
         if self.isPathExist(self.getDepotsDataPath(problemIndex)):
             # Read depots data and create DataFrame object
             df = pd.read_csv(self.getDepotsDataPath(problemIndex), usecols=[0, 1, 2, 3, 4, 5], header=0)
-
             # Convert DataFrame to a list of lists
             data = df.values.tolist()
             return data
@@ -120,34 +110,47 @@ class DataBase():
   
     def returnSolutions(self, problemIndex: int):
         """ 1-indexed for indexes"""
-        
         # Connect to the database
         conn = self.connect_db()
         if conn:
             cursor = conn.cursor()
-
             # Query to select all columns except SolutionID for the given ProblemID
             query = '''
                 SELECT ProblemID, SelectionType, MutationProb, Distance, Date, Time
                 FROM Solutions
                 WHERE ProblemID = ?
             '''
-        
             # Execute the query with the provided problemIndex
             cursor.execute(query, (problemIndex,))
-
             # Fetch all results into a list
             results = cursor.fetchall()
-
             # Create a DataFrame from the query result and exclude the SolutionID
             columns = ['ProblemID', 'SelectionType', 'MutationProb', 'Distance', 'Date', 'Time']
             df = pd.DataFrame(results, columns=columns)
-
             # Close the connection
             conn.close()
-
             # Return the DataFrame
             return df
         else:
             print("An error occured in returning solutions from database due to an incorrect database path")
             return pd.DataFrame(None)
+        
+    
+    def recordSolution(self, GA):
+        conn = self.connect_db()
+        if conn:
+            cursor = conn.cursor()
+            bestDistance = GA.bestSolution.fitness
+            dateToday = str(date.today())
+            time = str(datetime.now().strftime('%H:%M'))
+            solutionData = [(GA.currProblemIndex, GA.selectionType, GA.mutationProb, bestDistance, dateToday, time)]
+            cursor.executemany('''
+                INSERT INTO Solutions (ProblemID, SelectionType, MutationProb, Distance, Date, Time)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', solutionData)
+            print(f"Solution with min distance{bestDistance} was recorded into database")
+            # Commit and close database connection
+            conn.commit()
+            conn.close()
+        else:
+            print("An error occured in recording a solution due to incorrect database path")

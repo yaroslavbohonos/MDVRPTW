@@ -334,12 +334,14 @@ app.layout = dbc.Container([
     State("selection-dropdown", "value"),
     prevent_initial_call=True                  # Don't run the callback when the app loads
 )
-def run_visualisation(n_clicks, problem_index, init_pop_size, num_generations,
-                      mutation_rate, crossover_rate, selection_type):
+def run_visualisation(nClicks, problemIndex, initPopSize, numGenerations,
+                      mutationRate, crossoverRate, selectionType):
     # Call record_parameters and get the returned params
-    params = GA.recordParameters(problem_index, init_pop_size, num_generations, mutation_rate, crossover_rate, selection_type)
-    GA.recordProblemData(GA, DB)
+    params = GA.recordParameters(problemIndex, initPopSize, numGenerations, 
+                                 mutationRate, crossoverRate, selectionType)
+    GA.recordProblemData(DB)
     GA.evolvePopulation()
+    DB.recordSolution(GA)
 
 # Run web appplication
 if __name__ == "__main__":
