@@ -4,7 +4,7 @@ import csv
 import os
 from datetime import date, datetime
 
-class DataBase():
+class Database():
     # Assign object attributes
     def __init__(self, dbPath = './data/MDVRPTW_database.db', 
                  problemDataPath = './data/problem_data.csv'):
@@ -122,14 +122,13 @@ class DataBase():
             '''
             # Execute the query with the provided problemIndex
             cursor.execute(query, (problemIndex,))
-            # Fetch all results into a list
+            # Fetch found results into a list
             results = cursor.fetchall()
-            # Create a DataFrame from the query result and exclude the SolutionID
+            # Create DataFrame from query result (excluding the SolutionID)
             columns = ['ProblemID', 'SelectionType', 'MutationProb', 'Distance', 'Date', 'Time']
             df = pd.DataFrame(results, columns=columns)
             # Close the connection
             conn.close()
-            # Return the DataFrame
             return df
         else:
             print("An error occured in returning solutions from database due to an incorrect database path")

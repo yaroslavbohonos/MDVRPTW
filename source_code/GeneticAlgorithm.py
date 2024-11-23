@@ -1,11 +1,10 @@
-from ReportsDB import DataBase
-from Problem import Problem
+from numpy import cross
 from Solution import Solution
 from Customer import Customer
+from Problem import Problem
 from Depot import Depot
-from Vehicle import Vehicle
 from random import shuffle
-import heapq, random, copy
+import random, copy
 
 
 class GeneticAlgorithm(Problem):
@@ -37,9 +36,12 @@ class GeneticAlgorithm(Problem):
         self.mutationProb = mutationProb
         self.crossoverProb = crossoverProb
         self.selectionType = selectionType
+        """
         print(f"Problem index recorded {problemIndex}")
+        print(f"Parameters recorded: problem no:{problemIndex}, initial population size: {initPopSize}, crossover probability:{crossoverProb}, ")
+        print(f", numberof generations : {generations}, selection type:{selectionType}")
+        """
         
-
     def recordProblemData(self, DB):
         if not self.isdataRecorded:
             self.customers=[]
@@ -50,14 +52,10 @@ class GeneticAlgorithm(Problem):
             depots = DB.returnDepotData(problemIndex)
             for depot in depots:
                 self.depots.append(Depot(depot[0], depot[1], depot[2], depot[3], depot[4], depot[5]))
-        
-            #print(f"Depots populated: {self.depots}")  # Debug statement
 
             customers = DB.returnCustomerData(problemIndex)
             for customer in customers:
                 self.customers.append(Customer(len(depots) + customer[0], customer[1], customer[2], customer[3], customer[4], customer[5]) )
-
-            #print(f"Customers populated: {self.customers}")  # Debug statement
 
             self.numCustomers = len(customers)
             self.numDepots = len(depots)
@@ -80,14 +78,14 @@ class GeneticAlgorithm(Problem):
 
 
     def isFeasibleTW(self, stop1, stop2):  
-        self.calculateArrivalTime(stop1, stop2)
+        #self.calculateArrivalTime(stop1, stop2)
         if stop2.arrivesAt == None:
             return False
         else:
             return stop2.TW[0] <= stop2.arrivesAt <= stop2.TW[1]
 
 
-    def isFeasible(self, sol):
+    def isFeasible(self, sol):        
         for route in sol.routes:
             self.calculateRouteArrivalTimes(route)
             depot = route[0]
@@ -147,6 +145,10 @@ class GeneticAlgorithm(Problem):
         sol = Solution(solutionRoutes, None, None)
         sol.fitness = self.calculateFitness(sol)
         sol.isFeasible = self.isFeasible(sol)
+        
+        #for route in sol.routes:
+        #    print(f"Route of an initially generated solution", route)
+
         return sol 
 
 
@@ -196,7 +198,13 @@ class GeneticAlgorithm(Problem):
         sol.routes[sol.routes.index(parent1)] = child1
         sol.routes[sol.routes.index(parent2)] = child2
         sol.fitness = self.calculateFitness(sol)
-        sol.isFeasible = self.isFeasible(sol)   
+        sol.isFeasible = self.isFeasible(sol)  
+        """
+        print("Solution after a crossover operation")
+        for route in sol.routes:
+            print(route)
+        print()
+        """
         self.currentSol = sol
 
 
@@ -240,6 +248,12 @@ class GeneticAlgorithm(Problem):
                 cust1Route[cust1Index] = cust1
                 cust2Route[cust2Index] = cust2
                 totalAttempts += 1
+        """        
+        print("Best solution after a local search operation")
+        for route in sol.routes:
+            print(route)
+        print()
+        """
         return bestLocalSol
 
 
@@ -264,20 +278,29 @@ class GeneticAlgorithm(Problem):
                 if not reassigned:
                     newRoute = [depot, customerToRemove, depot]
                     sol.routes.append(newRoute)
-
+            
+            # Check the t.w. feasibility for all arrivals in a route
+            tempStop = depot # holds temporarily the current stop
             feasibleRoute = [depot]
             for customer in route[1:-1]:
-                if self.isFeasibleTW(depot, customer):
+                if self.isFeasibleTW(tempStop, customer):
                     feasibleRoute.append(customer)
-                    depot = customer  # Update depot to the last customer to check time window
+                    tempStop = customer  # Update current stop to the last customer to check next time window
             feasibleRoute.append(depot)
 
-            route[:] = feasibleRoute if len(feasibleRoute) > 1 else [depot]
+            # Write its functionality comment
+            route[:] = feasibleRoute if len(feasibleRoute) > 2 else [depot] 
+        
+        """
+        print("Solution after make feasible operation")
+        for route in sol.routes:
+            print(route)
+        print()
 
         self.currentSol.routes = sol.routes
         self.currentSol.isFeasible = self.isFeasible(sol)
         self.currentSol.fitness = self.calculateFitness(sol)
-        
+        """
 
     def canFitInRoute(self, customer, route):
         depot = route[0]
@@ -311,9 +334,11 @@ class GeneticAlgorithm(Problem):
                 self.bestSolutions[generation] = self.bestSolution
             
             #print(f"Generation {generation}: Best fitness {self.bestSolution.fitness}")
-        
+        self.bestSolutions[self.numGenerations] = self.bestSolution
         for generation in self.bestSolutions:
             print(f"Generation: {generation}: Best fitness {self.bestSolutions[generation].fitness}")
+        
+        
 
 """
 To do:

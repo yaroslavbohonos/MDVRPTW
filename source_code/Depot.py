@@ -1,4 +1,3 @@
-
 class Depot():
     
     def __init__ (self, index, x, y, capacity, start, end):        

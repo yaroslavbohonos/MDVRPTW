@@ -1,4 +1,3 @@
-
 class Customer():
     
     def __init__ (self, index, x, y, demand, start, end):
