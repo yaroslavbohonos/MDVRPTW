@@ -69,7 +69,7 @@ def plotRoutes(solution):
     for route in solution.routes:
         for i in range(len(route) - 1):
             start=route[i]
-            end=route[i+1]          
+            end=route[i+1]
             fig.add_annotation(
                 x=end.X,
                 y=end.Y,
@@ -87,6 +87,7 @@ def plotRoutes(solution):
                 name = "Route"
             )
 
+
 def clearRoutes():
     #fig.update_annotations(showarrow = False, visible = False)
     temp = list(fig.layout.annotations)
@@ -99,15 +100,15 @@ def clearProblemMap():
     addLegendOnlyEntries()
    
 
-def updateProblemMap(DB, solution, index):
+def updateProblemMap(DB, sol, index):
     global problemIndex
     if problemIndex != index:
         clearProblemMap()
         problemIndex = index
-    clearRoutes()  
-    if solution != None: # Avoid plotting an empty Solutions list
-        plotRoutes(solution)
-        solution.clear() # Avoid reploting after changing problem, plot only a new solution
+    clearRoutes()
+    if sol != None: # Avoid plotting an empty Solutions list
+        plotRoutes(sol)
+        #sol.clear() # Avoid reploting after changing problem, plot only a new solution
     depots = DB.returnDepotData(problemIndex)
     customers = DB.returnCustomerData(problemIndex)
     plotDepots(depots)
