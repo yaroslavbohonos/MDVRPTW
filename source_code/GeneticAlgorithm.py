@@ -214,7 +214,7 @@ class GeneticAlgorithm(Problem):
 
 
     def localSearch(self):
-        totalNumAttempts = 10000
+        totalNumAttempts = 100
         attemptsNumCustomer = 15
         bestLocalSol = copy.deepcopy(self.currentSol)
         sol = self.currentSol
@@ -235,18 +235,18 @@ class GeneticAlgorithm(Problem):
                     if cust2 in route:
                         cust2Route = route
                         break
+                if cust2Route != None:
+                    cust1Index = cust1Route.index(cust1)
+                    cust2Index = cust2Route.index(cust2)
+                    cust1Route[cust1Index] = cust2
+                    cust2Route[cust2Index] = cust1
+                    sol.isFeasible = self.isFeasible(sol)
+                    sol.fitness = self.calculateFitness(sol)
 
-                cust1Index = cust1Route.index(cust1)
-                cust2Index = cust2Route.index(cust2)
-                cust1Route[cust1Index] = cust2
-                cust2Route[cust2Index] = cust1
-                sol.isFeasible = self.isFeasible(sol)
-                sol.fitness = self.calculateFitness(sol)
-
-                if sol.isFeasible and sol.fitness < bestLocalSol.fitness:
-                    bestLocalSol = copy.deepcopy(sol)
-                cust1Route[cust1Index] = cust1
-                cust2Route[cust2Index] = cust2
+                    if sol.isFeasible and sol.fitness < bestLocalSol.fitness:
+                        bestLocalSol = copy.deepcopy(sol)
+                    cust1Route[cust1Index] = cust1
+                    cust2Route[cust2Index] = cust2
                 totalAttempts += 1
         """        
         print("Best solution after a local search operation")
@@ -323,7 +323,7 @@ class GeneticAlgorithm(Problem):
                 self.crossover()
             
             improvedSolution = self.localSearch()
-                
+            
             # every fifth generation the current sol. will be made feasible
             if generation % 5 == 0: 
                 self.makeFeasible()
@@ -335,8 +335,8 @@ class GeneticAlgorithm(Problem):
             
             #print(f"Generation {generation}: Best fitness {self.bestSolution.fitness}")
         self.bestSolutions[self.numGenerations] = self.bestSolution
-        for generation in self.bestSolutions:
-            print(f"Generation: {generation}: Best fitness {self.bestSolutions[generation].fitness}")
+        #for generation in self.bestSolutions:
+            #print(f"Generation: {generation}: Best fitness {self.bestSolutions[generation].fitness}")
         
         
 

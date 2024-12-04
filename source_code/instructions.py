@@ -4,15 +4,16 @@ def getInstructions():
     return html.Div(
         [
             html.H5("Instructions"),  # Title for instructions section 
-            html.P("Follow steps to run the visualisation:"),
+            #html.P("Follow steps to run the visualisation:"),
             html.Ul(
                 [
-                    html.Li("Select a problem from the dropdown list"),
-                    html.Li("Adjust the genetic parameters"),
-                    html.Li("Click 'Run Visualisation' to start the visualisation"),
-                    html.Li("Graphs will be updated with current solving data"),
+                    html.Li("Select a problem from the dropdown "),
+                    html.Li("Adjust the genetic parameters below"),
+                    html.Li("Press Run button to visualise solving"),
+                    html.Li("Visuals are updated with current data"),
                 ]
             ),
         ],
-        style={"background-color": "#F8F9FA", "padding": "20px", "border-radius": "10px", "margin-bottom": "20px"}  # Styling for the instructions section
+        # Styling for the instructions section
+        style={"background-color": "#dbdee1", "padding": "15px", "border-radius": "15px", "margin-bottom": "15px"}   
     )

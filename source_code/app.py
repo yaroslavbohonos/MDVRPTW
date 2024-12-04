@@ -1,4 +1,5 @@
 ﻿# Classes 
+from turtle import update
 from GeneticAlgorithm import GeneticAlgorithm
 from Database import Database 
 # Visual components 
@@ -7,6 +8,7 @@ from solutionsHistory import getSolutionsHistory, updateSolutionsHistory
 from parameterSettings import getParameterSettings
 from description import getDescription
 from instructions import getInstructions
+from fitnessGraph import getFitnessGraph, getFig, updateFitnessGraph
 # Dash and logic
 from dash import Dash, dcc, html, Input, Output, State, ctx
 import dash_bootstrap_components as dbc
@@ -34,15 +36,21 @@ app.layout = dbc.Container(
         # Row for web-application title
         dbc.Row([
             dbc.Col(
-                html.H1(
-                    "Visualisation of Multi-Depot Vehicle Routing Problem with Time Windows",
+                html.H4(
+                    "Visualisation of Solving Multi-Depot Vehicle Routing Problem with Time Windows",
                     className="text-center" # Centre the title
-                ), 
+                ),
+                
                 width=12 # Set max width size
-            )                       
-        ], justify="center", style={"padding-top": "15px"}),  # Center title and add padding from top
-    
-        html.Hr(),  # Horizontal line separator
+            )],
+            # Pin the to center
+            justify="center", 
+            # Styling for the main title
+            # Title colour - white, padding top is added to make equal distances from top and bottom
+            style={"padding-top": "5px","margin-bottom": "10px", "background-color": "#7d858c", "color": "white"}
+        ),  
+        
+        #html.Hr(style={"margin-top": "0px"}),  # Horizontal line separator
     
         # Row for main content, divided into 3 sections 
         # (left: instructions and parameters, center: map and description, right: fitness and history)
@@ -63,11 +71,11 @@ app.layout = dbc.Container(
                 # Center section with problem map and description
                 dbc.Col(
                     [
-                        html.H5("Visualised Problem Map"),  # Section title
+                        html.H5("Visualised Problem Map"), # Section title
                         getProblemMap(DB, 1),
-                        html.H5("Problem Description"),  # Section title
+                        #html.H5("Problem Description"), # Section title
                         getDescription()
-                    ], width=4                    # Set 4 out of 12 for the map and description section
+                    ], width=5 # Set 5 out of 12 for the map and description section
                 ),
                 
         
@@ -77,12 +85,8 @@ app.layout = dbc.Container(
                         # Fitness graph section
                         html.Div(
                             [
-                                html.H5("Fitness Graph"),            # Title
-                                dcc.Graph(
-                                    id="fitness-graph",              # Reference id of the graph
-                                    style={"margin-bottom": "20px"}, # Add space below
-                                    figure={}
-                                )                       # Placeholder for fitness graph
+                                html.H5("Fitness Graph"), # Title
+                                getFitnessGraph()            
                             ]
                         ),
             
@@ -90,7 +94,7 @@ app.layout = dbc.Container(
                         html.H5("Solutions History"),  # Section title  
                         getSolutionsHistory()
                     ], 
-                 width=5), # Set 5 out of 12 for the graph and solutions section
+                 width=4), # Set 4 out of 12 for the graph and solutions section
             ], align="start" # Align content to the top
         ),  
     ], 
@@ -102,6 +106,57 @@ fluid=True)  # Use fluid layout for full-width display
 # CALLBACKS(instant web updates) for interactivity between components in Dash
 
 bestSolutions=[]
+iterationLabels=[]
+
+startTime = 0
+endSolvingTime = 0
+startDisplayingTime = 0
+
+# Callback: Update Problem Map and Fitness Graph Dynamically
+@app.callback(
+    Output("problem-map", "figure"),
+    Output("speed-update", "disabled"),
+    Output("fitness-graph", "figure"),
+    # Triggers when a new problem is selected on dropdown
+    Input("problems-dropdown", "value"), 
+    # Represent a position in bestSolutions
+    # Triggers when interval is changed(incremented)
+    Input("speed-update", "n_intervals"),
+    prevent_initial_call=True
+)
+def updateMapAndFitness(problemIndex, pos):
+    global startDisplayingTime
+    #Determines what input triggered the callback
+    triggeredId = ctx.triggered_id
+    mapFig=None
+    fitnessFig=None
+    isDisabled = None
+
+    if triggeredId == "problems-dropdown":
+        mapFig = updateProblemMap(DB, None, problemIndex)
+        isDisabled = True
+        fitnessFig = getFig()
+    else:
+        if startDisplayingTime == 0:
+            startDisplayingTime = time.time()
+            print(f"Time taken to display after start of the solving {startDisplayingTime-startTime} sec.")
+        mapFig, isDisabled = drawMap(problemIndex, pos)
+        fitnessFig = updateFitnessGraph(pos, bestSolutions, iterationLabels)
+    
+    return mapFig, isDisabled, fitnessFig
+
+def drawMap(problemIndex, pos):
+    #global bestSolutions
+    # Check if position is reached 2nd element from the end
+    if pos > len(bestSolutions)-1:
+        # 2nd sol from the end because last solution is duplicated 
+        # This makes fitness graph obvious to interpret and continious
+        return updateProblemMap(DB, bestSolutions[-1], problemIndex), True 
+    else:
+        # Generate figure that based on position in bestSolutions
+        return updateProblemMap(DB, bestSolutions[pos], problemIndex), False
+
+
 # Callback to run GA to record GA parameters and problem index
 @app.callback(
     #Output("ga-completion-status", "data"),
@@ -120,59 +175,24 @@ bestSolutions=[]
     prevent_initial_call=True                  # Don't run the callback when the app loads
 )
 def runVisualisation(n_clicks, problemIndex, initPopSize, numGenerations, crossoverRate, selectionType, speedRate):
+    global startTime, endSolvingTime,startDisplayingTime
+    startDisplayingTime=0
+    startTime = time.time()
     # Record parameters and get the returned params
     GA.recordParameters(problemIndex, initPopSize, numGenerations, 0, crossoverRate, selectionType)
     GA.recordProblemData(DB)
     GA.evolvePopulation()
     DB.recordSolution(GA)
     
-    global bestSolutions
+    global bestSolutions, iterationLabels
     # Create best solution list for easier access of the dictinary within GA
     bestSolutions = list(GA.bestSolutions.values())
+    iterationLabels = list(GA.bestSolutions.keys())
  
+    endSolvingTime = time.time()
+    print(f"Time taken to solve a problem: {endSolvingTime - startTime} sec.")
     # Activate and reset the live updates trigger 
     return False, 0
-   
-
-
-# Callback: Update Problem Map Dynamically
-@app.callback(
-    Output("problem-map", "figure"),
-    Output("speed-update", "disabled"),
-    # Triggers when a new problem is selected on dropdown
-    Input("problems-dropdown", "value"), 
-    # Represent a position in bestSolutions
-    # Triggers when interval is changed(incremented)
-    Input("speed-update", "n_intervals"),
-    prevent_initial_call=True
-)
-def updateMap(problemIndex, pos):
-    #print("interval no.", pos)
-    #Determines what input triggered the callback
-    triggeredId = ctx.triggered_id
-    if triggeredId == "problems-dropdown":
-        return drawUnsolvedMap(problemIndex, pos)
-    else:
-        return drawSolvedMap(problemIndex, pos)
-        
-def drawUnsolvedMap(problemIndex, pos):
-    return updateProblemMap(DB, None, problemIndex), True
-
-def drawSolvedMap(problemIndex, pos):
-    global bestSolutions
-    # Check if position is reached 2nd element from the end
-    if pos >= len(bestSolutions)-2:
-        # 2nd sol from the end because last solution is duplicated 
-        # This makes fitness graph obvious to interpret and continious
-        return updateProblemMap(DB, bestSolutions[-2], problemIndex), True 
-    else:
-        # Generate figure that based on position in bestSolutions
-        return updateProblemMap(DB, bestSolutions[pos], problemIndex), False
-
-
-
-# Callback to udpate Fitness Graph after each new solution
-
 
 
 # Callback to udpate Solutions History after each new solution

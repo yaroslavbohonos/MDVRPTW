@@ -6,6 +6,8 @@ problemIndex = 1 # Initial plotted problem #1
 fig = go.Figure() # Initialise map's object
 isSolutionPlotted = False
 
+
+
 # Add empty-coordinate objects as a visual for the legend of map
 def addLegendOnlyEntry(fig, name, symbol, color, size, mode='markers', line_color=None):
     """Adds a legend-only entry (no actual data points) to the figure."""
@@ -70,29 +72,39 @@ def plotRoutes(solution):
         for i in range(len(route) - 1):
             start=route[i]
             end=route[i+1]
-            fig.add_annotation(
-                x=end.X,
-                y=end.Y,
-                ax=start.X,
-                ay=start.Y,
-                xref="x",
-                yref="y",
-                axref="x",
-                ayref="y",
-                showarrow=True,
-                arrowhead=3,      
-                arrowsize=2,      
-                arrowwidth=1,   
-                arrowcolor="black",
-                name = "Route"
-            )
+            try:
+                fig.add_annotation(
+                    x=end.X,
+                    y=end.Y,
+                    ax=start.X,
+                    ay=start.Y,
+                    xref="x",
+                    yref="y",
+                    axref="x",
+                    ayref="y",
+                    showarrow=True,
+                    arrowhead=3,      
+                    arrowsize=2,      
+                    arrowwidth=1,   
+                    arrowcolor="black",
+                    name = "Route"
+                )
+            except:
+                invalidValues= [end.X,
+                                end.Y,
+                                start.X,
+                                start.Y ]
+                print()
+                print("Invalid values error: printing values caused this:", invalidValues)
+                print()
 
 
 def clearRoutes():
     #fig.update_annotations(showarrow = False, visible = False)
-    temp = list(fig.layout.annotations)
-    temp.clear()
-    fig.layout.annotations = tuple(temp)
+    #temp = list(fig.layout.annotations)
+    #temp.clear()
+    #fig.layout.annotations = tuple(temp)
+    fig.layout.annotations = ()
 
 
 def clearProblemMap():
@@ -149,7 +161,7 @@ def getProblemMap(DB, problemIndex):
             xanchor="center",
             x=0.5  # Center legend horizontally
         ),
-        margin=dict(l=10, r=10, t=30, b=80)  # Adjust margins to fit the legend
+        margin=dict(l=0, r=0, t=5, b=50)  # Adjust margins to fit the legend
     )
 
     return dcc.Graph(

@@ -100,7 +100,7 @@ def getParameterSettings():
             html.H5("Parameter Settings"),  # Section title              
 
             # Label for dropdown and add space above
-            html.Label("Problem to be solved and displayed", style={"margin-top": "20px"}), 
+            html.Label("Problem to be solved and displayed", style={"margin-top": "10px"}), 
             # Dropdown for choosing problem
             getProblemDropdown(),  
 
@@ -137,5 +137,5 @@ def getParameterSettings():
             # Button to trigger the visualisation (Centered)
             getRunButton()
         # Parameter settings styling
-        ], style={"background-color": "#F8F9FA", "padding": "20px", "border-radius": "10px"}
+        ], style={"background-color": "#F8F9FA", "padding": "15px", "border-radius": "15px"}
     )
