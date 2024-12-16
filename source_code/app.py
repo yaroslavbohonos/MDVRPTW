@@ -112,6 +112,24 @@ startTime = 0
 endSolvingTime = 0
 startDisplayingTime = 0
 
+# Callback: Updates the displaying speed 
+@app.callback(
+    Output("speed-update", "interval"),
+    # Current speed value (0 or 0.5 or 1)
+    Input("speed-slider", "value"),
+    # Triggers when interval is changed
+    Input("speed-update", "disabled"),
+    prevent_initial_call=True
+)
+def updateSpeed(speed, _):
+    if speed == 0:
+        return 5000
+    elif speed == 0.5:
+        return 1000
+    else:
+        return 250
+
+
 # Callback: Update Problem Map and Fitness Graph Dynamically
 @app.callback(
     Output("problem-map", "figure"),
@@ -120,7 +138,7 @@ startDisplayingTime = 0
     # Triggers when a new problem is selected on dropdown
     Input("problems-dropdown", "value"), 
     # Represent a position in bestSolutions
-    # Triggers when interval is changed(incremented)
+    # Triggers when interval is changed
     Input("speed-update", "n_intervals"),
     prevent_initial_call=True
 )
@@ -148,7 +166,7 @@ def updateMapAndFitness(problemIndex, pos):
 def drawMap(problemIndex, pos):
     #global bestSolutions
     # Check if position is reached 2nd element from the end
-    if pos > len(bestSolutions)-1:
+    if pos > len(bestSolutions)-2 and bestSolutions:
         # 2nd sol from the end because last solution is duplicated 
         # This makes fitness graph obvious to interpret and continious
         return updateProblemMap(DB, bestSolutions[-1], problemIndex), True 
@@ -188,6 +206,12 @@ def runVisualisation(n_clicks, problemIndex, initPopSize, numGenerations, crosso
     # Create best solution list for easier access of the dictinary within GA
     bestSolutions = list(GA.bestSolutions.values())
     iterationLabels = list(GA.bestSolutions.keys())
+    print(f"number of best solutions  {len(bestSolutions)}")
+    print("Min. distances")
+    for sol in bestSolutions:
+        print(sol.fitness)
+    print(f"number of iteration labels {len(iterationLabels)}")
+    print(f"iteration labels {iterationLabels}")
  
     endSolvingTime = time.time()
     print(f"Time taken to solve a problem: {endSolvingTime - startTime} sec.")

@@ -227,26 +227,23 @@ class GeneticAlgorithm(Problem):
                 break
             cust1 = random.choice(cust1Route[1:-1])
             for _ in range(attemptsNumCustomer):
-                cust2 = random.choice(customers)
+                cust2Route = random.choice(routesToCheck)
+                cust2 = random.choice(cust2Route[1:-1])
                 if cust1 == cust2:
                     continue  
-                cust2Route = None
-                for route in sol.routes:
-                    if cust2 in route:
-                        cust2Route = route
-                        break
-                if cust2Route != None:
-                    cust1Index = cust1Route.index(cust1)
-                    cust2Index = cust2Route.index(cust2)
-                    cust1Route[cust1Index] = cust2
-                    cust2Route[cust2Index] = cust1
-                    sol.isFeasible = self.isFeasible(sol)
-                    sol.fitness = self.calculateFitness(sol)
+                
+                cust1Index = cust1Route.index(cust1)
+                cust2Index = cust2Route.index(cust2)
+                cust1Route[cust1Index] = cust2
+                cust2Route[cust2Index] = cust1
+                sol.isFeasible = self.isFeasible(sol)
+                sol.fitness = self.calculateFitness(sol)
 
-                    if sol.isFeasible and sol.fitness < bestLocalSol.fitness:
-                        bestLocalSol = copy.deepcopy(sol)
-                    cust1Route[cust1Index] = cust1
-                    cust2Route[cust2Index] = cust2
+                if sol.isFeasible and sol.fitness < bestLocalSol.fitness:
+                    bestLocalSol = copy.deepcopy(sol)
+                cust1Route[cust1Index] = cust1
+                cust2Route[cust2Index] = cust2
+                
                 totalAttempts += 1
         """        
         print("Best solution after a local search operation")
@@ -278,7 +275,7 @@ class GeneticAlgorithm(Problem):
                 if not reassigned:
                     newRoute = [depot, customerToRemove, depot]
                     sol.routes.append(newRoute)
-            
+           
             # Check the t.w. feasibility for all arrivals in a route
             tempStop = depot # holds temporarily the current stop
             feasibleRoute = [depot]
@@ -290,7 +287,6 @@ class GeneticAlgorithm(Problem):
 
             # Write its functionality comment
             route[:] = feasibleRoute if len(feasibleRoute) > 2 else [depot] 
-        
         """
         print("Solution after make feasible operation")
         for route in sol.routes:

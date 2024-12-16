@@ -8,9 +8,9 @@ def getInstructions():
             html.Ul(
                 [
                     html.Li("Select a problem from the dropdown "),
-                    html.Li("Adjust the genetic parameters below"),
-                    html.Li("Press Run button to visualise solving"),
-                    html.Li("Visuals are updated with current data"),
+                    html.Li("Tune the genetic parameters below"),
+                    html.Li("Press the run button to start solving"),
+                    html.Li("Visuals are updated with solving data"),
                 ]
             ),
         ],

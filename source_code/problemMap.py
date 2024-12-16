@@ -1,11 +1,10 @@
 from dash import dcc
 import plotly.graph_objects as go
 import time
+import plotly.express as px
 
 problemIndex = 1 # Initial plotted problem #1
 fig = go.Figure() # Initialise map's object
-isSolutionPlotted = False
-
 
 
 # Add empty-coordinate objects as a visual for the legend of map
@@ -66,61 +65,46 @@ def plotDepots(depots):
             )
         )  
 
+            
+# Colourblind-friendly colours
+routeColors = px.colors.qualitative.Safe               
+
 def plotRoutes(solution):
     # Plot a route connection between a depot and customer(-s)
+    # Counter for uniqueness of colours
+    counter = 0
     for route in solution.routes:
+        # Set a different colour for each route
+        colour = routeColors[ counter % len(routeColors)]
         for i in range(len(route) - 1):
             start=route[i]
             end=route[i+1]
-            try:
-                fig.add_annotation(
-                    x=end.X,
-                    y=end.Y,
-                    ax=start.X,
-                    ay=start.Y,
-                    xref="x",
-                    yref="y",
-                    axref="x",
-                    ayref="y",
-                    showarrow=True,
-                    arrowhead=3,      
-                    arrowsize=2,      
-                    arrowwidth=1,   
-                    arrowcolor="black",
-                    name = "Route"
+            fig.add_trace(
+                go.Scatter(
+                    x=[start.X, end.X],
+                    y=[start.Y, end.Y],
+                    mode="lines+markers",
+                    line=dict(color=colour, width=2),
+                    marker=dict(size=10, symbol="arrow-bar-up", angleref="previous", color=colour),
+                    showlegend=False,
+                    name="Route"
                 )
-            except:
-                invalidValues= [end.X,
-                                end.Y,
-                                start.X,
-                                start.Y ]
-                print()
-                print("Invalid values error: printing values caused this:", invalidValues)
-                print()
-
-
-def clearRoutes():
-    #fig.update_annotations(showarrow = False, visible = False)
-    #temp = list(fig.layout.annotations)
-    #temp.clear()
-    #fig.layout.annotations = tuple(temp)
-    fig.layout.annotations = ()
-
+            )
+        counter+=1    
+    return fig
+    
 
 def clearProblemMap():
-    fig.data = []
+    fig.data=()
     addLegendOnlyEntries()
    
 
 def updateProblemMap(DB, sol, index):
     global problemIndex
-    if problemIndex != index:
-        clearProblemMap()
-        problemIndex = index
-    clearRoutes()
+    problemIndex = index
+    clearProblemMap()
     if sol != None: # Avoid plotting an empty Solutions list
         plotRoutes(sol)
-        #sol.clear() # Avoid reploting after changing problem, plot only a new solution
     depots = DB.returnDepotData(problemIndex)
     customers = DB.returnCustomerData(problemIndex)
     plotDepots(depots)

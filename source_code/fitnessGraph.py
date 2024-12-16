@@ -70,4 +70,11 @@ def updateFitnessGraph(pos, solutions, iterations):
     # Update existing trace data
     fig.data[0].x = xData
     fig.data[0].y = yData
+    if pos == 0:
+        fig.update_layout(
+            yaxis_range=[0, solutions[0].fitness+100]
+        )
+        fig.update_layout(
+            xaxis_range=[-5, iterations[-1] + 10]
+        )
     return fig
