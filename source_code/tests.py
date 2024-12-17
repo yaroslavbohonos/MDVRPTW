@@ -51,7 +51,7 @@ class TestGA(unittest.TestCase):
                   [depots[1], customers[3], customers[4], customers[5], depots[1]] ]
         solution = Solution(routes, None, None)
         solution.isFeasible = GA.isFeasible(solution)
-        print(f"Valid t.w. solution's feasibility {solution.isFeasible}")
+        print(f"Valid t.w. solution's feasibility - {solution.isFeasible}")
         self.assertTrue(solution.isFeasible, "Determining feasibility of solution with valid time windows is correct")    
 
     def testFeasibilityInvalidCapacity(self):
@@ -72,7 +72,7 @@ class TestGA(unittest.TestCase):
         solution = Solution(routes, None, None)
         solution.isFeasible = GA.isFeasible(solution)
         solution.isFeasible = GA.isFeasible(solution)
-        print(f"Invalid capacity solution's feasibility {solution.isFeasible}")
+        print(f"Invalid capacity solution's feasibility - {solution.isFeasible}")
         self.assertFalse(solution.isFeasible, "Determining feasibility of solution with capacity violation is incorrect")
     
     def testCalculateArrivalTimes(self):

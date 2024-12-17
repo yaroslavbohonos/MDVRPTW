@@ -24,7 +24,10 @@ def getSolutionsHistory(problemIndex=1):
     #global solutionsHistory 
     solutionsHistory = dag.AgGrid(
         id="solutions_history", # Reference id of the table
-        style={"margin-bottom": "20px"}, # Add space below the table
+        style={
+            "margin-bottom": "20px", # Add space below the table
+            "height": "250px" # Fixed height
+        }, 
         rowData = [],  # Create row data for future solutions
         columnDefs=columnDefs,  # Use the defined columnDefs to structure the grid
         # (include later except of the Problem No column)

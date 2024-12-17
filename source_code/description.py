@@ -15,5 +15,12 @@ def getDescription():
             html.P("The genetic algorithm performs great with many constraints. It explores a big range of solutions. And it can balance between validity of solutions and efficiency. That is why it is very effective for the logistic challenges."),                    
         ],
         # Styling for description section
-        style={"background-color": "#dbdee1", "padding": "15px", "border-radius": "15px", "margin-bottom": "10px"}
+        style={
+            "background-color": "#dbdee1",
+            "padding": "15px",
+            "border-radius": "15px",
+            "margin-bottom": "10px",
+            "height": "285px",  # Fixed height
+            "overflow-y": "auto",  # Enable vertical scrolling
+        }
     )    
