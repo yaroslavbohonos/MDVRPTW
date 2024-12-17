@@ -1,4 +1,3 @@
-from numpy import cross
 from Solution import Solution
 from Customer import Customer
 from Problem import Problem
@@ -115,7 +114,7 @@ class GeneticAlgorithm(Problem):
             totalDistance += distance
         if not sol.isFeasible:
             totalDistance *= self.PENALTY
-        return totalDistance
+        return round(totalDistance, 1)
         
 
     # To do: think how I can get rid of removing customers 
@@ -159,6 +158,8 @@ class GeneticAlgorithm(Problem):
         if len(self.population) > self.MAX_POP_SIZE:
             for _ in range(len(self.population) - self.initPopSize):
                 self.population.pop()
+            for _ in range(5):
+                self.population.append(self.createSolution())        
 
         #print(f"Population size: {len(self.population)}")
         #print(f"Best fitness: {self.population[0].fitness}, Worst fitness: {self.population[-1].fitness}")
@@ -197,8 +198,6 @@ class GeneticAlgorithm(Problem):
         # Update current solution details
         sol.routes[sol.routes.index(parent1)] = child1
         sol.routes[sol.routes.index(parent2)] = child2
-        sol.fitness = self.calculateFitness(sol)
-        sol.isFeasible = self.isFeasible(sol)  
         """
         print("Solution after a crossover operation")
         for route in sol.routes:
@@ -214,17 +213,21 @@ class GeneticAlgorithm(Problem):
 
 
     def localSearch(self):
-        totalNumAttempts = 100
+        totalNumAttempts = 15000
         attemptsNumCustomer = 15
         bestLocalSol = copy.deepcopy(self.currentSol)
         sol = self.currentSol
         totalAttempts = 0
         customers = self.customers.copy()
-        routesToCheck = random.sample(sol.routes, min(len(sol.routes), max(1, self.numCustomers // 6 - 1)))
+        for route in sol.routes:
+            if len(route) <= 2:
+                sol.routes.remove(route) 
+        routesToCheck = random.sample(sol.routes, max(1, self.numCustomers // 6 - 1))
 
         for cust1Route in routesToCheck:
             if totalAttempts > totalNumAttempts:
                 break
+            
             cust1 = random.choice(cust1Route[1:-1])
             for _ in range(attemptsNumCustomer):
                 cust2Route = random.choice(routesToCheck)
@@ -236,11 +239,12 @@ class GeneticAlgorithm(Problem):
                 cust2Index = cust2Route.index(cust2)
                 cust1Route[cust1Index] = cust2
                 cust2Route[cust2Index] = cust1
-                sol.isFeasible = self.isFeasible(sol)
+            
                 sol.fitness = self.calculateFitness(sol)
+                #sol.isFeasible = self.isFeasible(sol)
 
-                if sol.isFeasible and sol.fitness < bestLocalSol.fitness:
-                    bestLocalSol = copy.deepcopy(sol)
+                if sol.fitness < bestLocalSol.fitness:
+                    bestLocalSol = copy.deepcopy(sol)        
                 cust1Route[cust1Index] = cust1
                 cust2Route[cust2Index] = cust2
                 
@@ -251,18 +255,21 @@ class GeneticAlgorithm(Problem):
             print(route)
         print()
         """
-        return bestLocalSol
+        self.currentSol = bestLocalSol
 
 
     def makeFeasible(self):
-        sol = self.currentSol
+        sol = copy.deepcopy(self.currentSol)
         for route in sol.routes:
             depot = route[0]
             currentDemand = sum(c.DEMAND for c in route[1:-1])
+            if len(route) <= 2:
+                    sol.routes.remove(route)
 
             while currentDemand > depot.CAPACITY:
                 customerToRemove = max(route[1:-1], key=lambda c: c.DEMAND)
                 route.remove(customerToRemove)
+                
                 currentDemand -= customerToRemove.DEMAND
             
                 reassigned = False
@@ -297,6 +304,10 @@ class GeneticAlgorithm(Problem):
         self.currentSol.isFeasible = self.isFeasible(sol)
         self.currentSol.fitness = self.calculateFitness(sol)
         """
+        sol.fitness = self.calculateFitness(sol)
+        sol.isFeasible = self.isFeasible(sol)
+        self.currentSol = sol
+        
 
     def canFitInRoute(self, customer, route):
         depot = route[0]
@@ -306,7 +317,6 @@ class GeneticAlgorithm(Problem):
 
     def evolvePopulation(self):
         self.createPopulation()
-
         self.currentSol = self.population[0]
         self.makeFeasible()
         self.bestSolution = self.currentSol
@@ -318,19 +328,20 @@ class GeneticAlgorithm(Problem):
             if random.random() < self.crossoverProb: # A number between 0.0 and 1.0
                 self.crossover()
             
-            improvedSolution = self.localSearch()
-            
+            self.localSearch()
             # every fifth generation the current sol. will be made feasible
-            if generation % 5 == 0: 
-                self.makeFeasible()
+            #if generation % 5 == 0: 
+            self.makeFeasible()
             self.addToPopulation(self.currentSol)
             
-            if improvedSolution.isFeasible and improvedSolution.fitness < self.bestSolution.fitness:
-                self.bestSolution = improvedSolution
-                self.bestSolutions[generation] = self.bestSolution
-            
+            print(f"Current Sol fitness: {self.currentSol.fitness}")
+            print(f"Bes Sol fitness: {self.bestSolution.fitness}")
+            if self.currentSol.isFeasible and (self.currentSol.fitness < self.bestSolution.fitness):
+                self.bestSolution = copy.deepcopy(self.currentSol)
+                self.bestSolutions[generation] = copy.deepcopy(self.currentSol)
+        self.bestSolutions[self.numGenerations] = self.bestSolution        
             #print(f"Generation {generation}: Best fitness {self.bestSolution.fitness}")
-        self.bestSolutions[self.numGenerations] = self.bestSolution
+            
         #for generation in self.bestSolutions:
             #print(f"Generation: {generation}: Best fitness {self.bestSolutions[generation].fitness}")
         

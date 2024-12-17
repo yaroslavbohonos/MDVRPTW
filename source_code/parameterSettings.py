@@ -2,12 +2,12 @@ from dash import dcc, html
 
 
 def getProblemDropdown():
-    info = [[None,None],[50,4],[10,2],["n","n"], ["n","n"], ["n","n"]]
+    info = [[None,None],[8,2],[10,2],[16,3], [18,3]]
     return dcc.Dropdown(
         id='problems-dropdown', # Reference id of the dropdown
         options=[ # Options with titles and reference values
             {'label': f'Problem {i} ({info[i][0]} customers, {info[i][1]} depots)', 'value': i}
-            for i in range(1, 6)
+            for i in range(1, 5)
         ],
         value=1,  # Default to 'Problem 1'
         searchable=False, # Restrict user text input,
