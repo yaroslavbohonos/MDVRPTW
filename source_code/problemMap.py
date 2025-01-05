@@ -3,6 +3,7 @@ import plotly.graph_objects as go
 import time
 import plotly.express as px
 
+
 problemIndex = 1 # Initial plotted problem #1
 fig = go.Figure() # Initialise map's object
 
@@ -12,7 +13,8 @@ def addLegendOnlyEntry(fig, name, symbol, color, size, mode='markers', line_colo
     """Adds a legend-only entry (no actual data points) to the figure."""
     fig.add_trace( 
         go.Scatter(
-            x=[None], y=[None],  # No actual data point plotted
+            # Nothing is plotted on the map
+            x=[None], y=[None],  
             mode=mode,
             # Passing shape inputs as icons to the legend visual
             marker=dict(size=size, symbol=symbol, color=color) if mode == 'markers' else None,
@@ -39,10 +41,13 @@ def plotCustomers(customers):
             go.Scatter(
                 x=[customer[1]],
                 y=[customer[2]],
-                mode='markers+text', # Allows displaying not only icons but also contents of "text" next to icons
+                # Allows displaying not only icons but also contents of "text" next to icons
+                mode='markers+text',
                 textposition='top center',
-                showlegend=False,  # Not displaying each customer in legend
-                marker=dict(size=10, symbol='circle', color='blue'), # An icon for each customer
+                # Not displaying each customer in legend
+                showlegend=False,
+                # An icon for each customer
+                marker=dict(size=10, symbol='circle', color='blue'), 
                 text=f"<b>[{customer[4]}, {customer[5]}]</b>",
                 name="Customer",
             )
@@ -85,7 +90,7 @@ def plotRoutes(solution):
                     y=[start.Y, end.Y],
                     mode="lines+markers",
                     line=dict(color=colour, width=2),
-                    marker=dict(size=10, symbol="arrow-bar-up", angleref="previous", color=colour),
+                    marker=dict(size=12, symbol="arrow-bar-up", angleref="previous", color=colour),
                     showlegend=False,
                     name="Route"
                 )
@@ -103,7 +108,8 @@ def updateProblemMap(DB, sol, index):
     global problemIndex
     problemIndex = index
     clearProblemMap()
-    if sol != None: # Avoid plotting an empty Solutions list
+    # Avoid plotting an empty list of solutions
+    if sol != None:
         plotRoutes(sol)
     depots = DB.returnDepotData(problemIndex)
     customers = DB.returnCustomerData(problemIndex)
@@ -139,17 +145,24 @@ def getProblemMap(DB, problemIndex):
         yaxis = axis_properties,
         showlegend=True,
         legend=dict(
-            orientation="h",  # Horizontal legend
-            yanchor="bottom",  # Anchor legend to the bottom
-            y=-0.09,  # Position legend below the plot
+            # Horizontal legend
+            orientation="h",  
+            # Anchor legend to the bottom
+            yanchor="bottom",  
+            # Position legend below the plot
+            y=-0.09,  
             xanchor="center",
-            x=0.5  # Center legend horizontally
+            # Center legend horizontally
+            x=0.5  
         ),
-        margin=dict(l=0, r=0, t=5, b=50)  # Adjust margins to fit the legend
+        # Adjust margins to fit the legend
+        margin=dict(l=0, r=0, t=5, b=50)  
     )
 
     return dcc.Graph(
-        id="problem-map",                # Reference id of the section
-        style={"margin-bottom": "20px"}, # Add space below the map
+        # Reference id of the section
+        id="problem-map",                
+        # Add space below the map
+        style={"margin-bottom": "20px"}, 
         figure=fig
     )

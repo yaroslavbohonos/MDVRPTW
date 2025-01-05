@@ -23,22 +23,28 @@ def getSolutionsHistory(problemIndex=1):
     # Create AgGrid table using solutions data
     #global solutionsHistory 
     solutionsHistory = dag.AgGrid(
-        id="solutions_history", # Reference id of the table
+        # Reference id of the table
+        id="solutions_history", 
         style={
-            "margin-bottom": "20px", # Add space below the table
-            "height": "250px" # Fixed height
+            # Add space below the table
+            "margin-bottom": "20px", 
+            # Fixed height
+            "height": "250px" 
         }, 
-        rowData = [],  # Create row data for future solutions
-        columnDefs=columnDefs,  # Use the defined columnDefs to structure the grid
-        # (include later except of the Problem No column)
-        defaultColDef={"filter": True},  # Enable filtering for all columns 
-        columnSize="autoSize",  # Adjust columns automatically to fit titles
-        dashGridOptions={"animateRows": False}  # Disable row animation for better performance
+        # Create row data for future solutions
+        rowData = [],  
+         # Use the defined columnDefs to structure the grid
+        columnDefs=columnDefs, # (Remove later Problem No column) !!!!!
+        # Enable filtering for all columns 
+        defaultColDef={"filter": True},
+        # Adjust columns automatically to fit titles
+        columnSize="autoSize",
+         # Disable row animation for better performance
+        dashGridOptions={"animateRows": False} 
     )
-
     return solutionsHistory
 
 def updateSolutionsHistory(DB, problemIndex):
-    #global solutionsHistory
-    newSolutions = (DB.returnSolutions(problemIndex)).to_dict("records")  # Get solutions DataFrame from the DB
+    # Get solutions DataFrame from the DB
+    newSolutions = (DB.returnSolutions(problemIndex)).to_dict("records")  
     return newSolutions

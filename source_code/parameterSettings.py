@@ -14,6 +14,7 @@ def getProblemDropdown():
         clearable=False  # Disable the clear option (no "x" icon)
     )
 
+
 def getPopulationSlider():
     return dcc.Slider(
         id='population-slider', # Reference id of the slider
@@ -24,6 +25,7 @@ def getPopulationSlider():
         marks={5: '5', 50: '50'},
         tooltip={"placement": "bottom", "always_visible": True} # current value constant displaying
     )
+
 
 def getIterationsSlider():
     return dcc.Slider(
@@ -46,6 +48,7 @@ def getMutationSlider():
         marks= {0: '0', 1: '1'},
         tooltip={"placement": "bottom", "always_visible": True, } # current value constant displaying
     )
+
 
 def getCrossoverSlider():
     return dcc.Slider(
@@ -81,6 +84,7 @@ def getSelectionDropdown():
         searchable=False,   # Disable search option
         clearable=False     # Disable the clear option (no "x" icon)
     )
+
 
 def getRunButton():
     return html.Div(

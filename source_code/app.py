@@ -1,5 +1,4 @@
 ﻿# Classes 
-from turtle import update
 from GeneticAlgorithm import GeneticAlgorithm
 from Database import Database 
 # Visual components 
@@ -206,12 +205,12 @@ def runVisualisation(n_clicks, problemIndex, initPopSize, numGenerations, crosso
     # Create best solution list for easier access of the dictinary within GA
     bestSolutions = list(GA.bestSolutions.values())
     iterationLabels = list(GA.bestSolutions.keys())
-    print(f"number of best solutions  {len(bestSolutions)}")
-    print("Min. distances")
+    #print(f"number of best solutions  {len(bestSolutions)}")
+    #print("Min. distances")
     for sol in bestSolutions:
         print(sol.fitness)
-    print(f"number of iteration labels {len(iterationLabels)}")
-    print(f"iteration labels {iterationLabels}")
+    #print(f"number of iteration labels {len(iterationLabels)}")
+    #print(f"iteration labels {iterationLabels}")
  
     endSolvingTime = time.time()
     print(f"Time taken to solve a problem: {endSolvingTime - startTime} sec.")
