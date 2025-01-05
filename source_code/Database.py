@@ -59,7 +59,7 @@ class Database():
                 SolutionID INTEGER PRIMARY KEY AUTOINCREMENT,
                 ProblemID INTEGER,
                 SelectionType TEXT NOT NULL,
-                MutationProb REAL NOT NULL,
+                CrossoverProb REAL NOT NULL,
                 Distance REAL NOT NULL,
                 Date TEXT NOT NULL,
                 Time TEXT NOT NULL,
@@ -74,7 +74,7 @@ class Database():
             # (1, 'Tournament', 0.15, 130.78, '2024-09-16', '12:35')
         ]
         cursor.executemany('''
-            INSERT INTO Solutions (ProblemID, SelectionType, MutationProb, Distance, Date, Time)
+            INSERT INTO Solutions (ProblemID, SelectionType, CrossoverProb, Distance, Date, Time)
             VALUES (?, ?, ?, ?, ?, ?)
         ''', solutions_data)
         # Commit and close database connection
@@ -116,7 +116,7 @@ class Database():
             cursor = conn.cursor()
             # Query to select all columns except SolutionID for the given ProblemID
             query = '''
-                SELECT ProblemID, SelectionType, MutationProb, Distance, Date, Time
+                SELECT CrossoverProb, Distance, Date, Time
                 FROM Solutions
                 WHERE ProblemID = ?
             '''
@@ -125,7 +125,7 @@ class Database():
             # Fetch found results into a list
             results = cursor.fetchall()
             # Create DataFrame from query result (excluding the SolutionID)
-            columns = ['ProblemID', 'SelectionType', 'MutationProb', 'Distance', 'Date', 'Time']
+            columns = [ 'CrossoverProb', 'Distance', 'Date', 'Time']
             df = pd.DataFrame(results, columns=columns)
             # Close the connection
             conn.close()
@@ -142,9 +142,9 @@ class Database():
             bestDistance = GA.bestSolution.fitness
             dateToday = str(date.today())
             time = str(datetime.now().strftime('%H:%M'))
-            solutionData = [(GA.currProblemIndex, GA.selectionType, GA.mutationProb, bestDistance, dateToday, time)]
+            solutionData = [(GA.currProblemIndex, GA.selectionType, GA.crossoverProb, bestDistance, dateToday, time)]
             cursor.executemany('''
-                INSERT INTO Solutions (ProblemID, SelectionType, MutationProb, Distance, Date, Time)
+                INSERT INTO Solutions (ProblemID, SelectionType, CrossoverProb, Distance, Date, Time)
                 VALUES (?, ?, ?, ?, ?, ?)
             ''', solutionData)
             print(f"Solution with min distance{bestDistance} was recorded into database")

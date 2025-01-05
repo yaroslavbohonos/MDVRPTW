@@ -415,16 +415,11 @@ class GeneticAlgorithm(Problem):
             self.addToPopulation(self.currentSol)
             
             self.currentSol.isFeasible = self.isFeasible(self.currentSol)
-            #print(f"Current Sol fitness: {self.currentSol.fitness}")
-            #print(f"Bes Sol fitness: {self.bestSolution.fitness}")
             if self.currentSol.isFeasible and (self.currentSol.fitness < self.bestSolution.fitness):
                 self.bestSolution = copy.deepcopy(self.currentSol)
                 self.bestSolutions[generation] = copy.deepcopy(self.currentSol)
         self.bestSolutions[self.numGenerations] = self.bestSolution        
-            #print(f"Generation {generation}: Best fitness {self.bestSolution.fitness}")
-            
-        #for generation in self.bestSolutions:
-            #print(f"Generation: {generation}: Best fitness {self.bestSolutions[generation].fitness}")
+
         
 
 

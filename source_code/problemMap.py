@@ -10,14 +10,14 @@ fig = go.Figure() # Initialise map's object
 
 # Add empty-coordinate objects as a visual for the legend of map
 def addLegendOnlyEntry(fig, name, symbol, color, size, mode='markers', line_color=None):
-    """Adds a legend-only entry (no actual data points) to the figure."""
+    """Adds a legend-only entry (no actual data points) to the figure."""    
     fig.add_trace( 
         go.Scatter(
             # Nothing is plotted on the map
             x=[None], y=[None],  
             mode=mode,
             # Passing shape inputs as icons to the legend visual
-            marker=dict(size=size, symbol=symbol, color=color) if mode == 'markers' else None,
+            marker=dict(size=size, symbol=symbol, color=color) if symbol else None,
             # If a icon represent a line
             line=dict(color=line_color) if mode == 'lines' else None,
             name=f"<b>{name}</b>",
@@ -27,11 +27,11 @@ def addLegendOnlyEntry(fig, name, symbol, color, size, mode='markers', line_colo
 
 def addLegendOnlyEntries():
     # Add legend-only entries using the multi-figure function 
-    addLegendOnlyEntry(fig, name="Depot", symbol='square', color='green', size=15)
-    addLegendOnlyEntry(fig, name="Customer", symbol='circle', color='blue', size=10)
-    addLegendOnlyEntry(fig, name="Route", symbol=None, color=None, size=None, mode='lines', line_color='blue')
+    addLegendOnlyEntry(fig, name="Depot  ", symbol='square', color='green', size=15)
+    addLegendOnlyEntry(fig, name="Customer  ", symbol='circle', color='blue', size=10)
+    addLegendOnlyEntry(fig, name="---> Route   ", symbol=None, color=None, size=None, mode='text')
     # Add a legend-only time window with "text" shape as bold text
-    addLegendOnlyEntry(fig, name="[Start, End]  Time Window", symbol=None, color=None, size=None, mode='text')
+    addLegendOnlyEntry(fig, name="[Start, End] Time Window", symbol=None, color=None, size=None, mode='text')
 
 
 def plotCustomers(customers):
