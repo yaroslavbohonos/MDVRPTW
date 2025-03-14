@@ -1,20 +1,23 @@
 from dash import dcc
 import plotly.graph_objects as go
 import time
+import plotly.express as px
+
 
 problemIndex = 1 # Initial plotted problem #1
 fig = go.Figure() # Initialise map's object
-isSolutionPlotted = False
+
 
 # Add empty-coordinate objects as a visual for the legend of map
 def addLegendOnlyEntry(fig, name, symbol, color, size, mode='markers', line_color=None):
-    """Adds a legend-only entry (no actual data points) to the figure."""
+    """Adds a legend-only entry (no actual data points) to the figure."""    
     fig.add_trace( 
         go.Scatter(
-            x=[None], y=[None],  # No actual data point plotted
+            # Nothing is plotted on the map
+            x=[None], y=[None],  
             mode=mode,
             # Passing shape inputs as icons to the legend visual
-            marker=dict(size=size, symbol=symbol, color=color) if mode == 'markers' else None,
+            marker=dict(size=size, symbol=symbol, color=color) if symbol else None,
             # If a icon represent a line
             line=dict(color=line_color) if mode == 'lines' else None,
             name=f"<b>{name}</b>",
@@ -24,11 +27,11 @@ def addLegendOnlyEntry(fig, name, symbol, color, size, mode='markers', line_colo
 
 def addLegendOnlyEntries():
     # Add legend-only entries using the multi-figure function 
-    addLegendOnlyEntry(fig, name="Depot", symbol='square', color='green', size=15)
-    addLegendOnlyEntry(fig, name="Customer", symbol='circle', color='blue', size=10)
-    addLegendOnlyEntry(fig, name="Route", symbol=None, color=None, size=None, mode='lines', line_color='blue')
+    addLegendOnlyEntry(fig, name="Depot  ", symbol='square', color='green', size=15)
+    addLegendOnlyEntry(fig, name="Customer  ", symbol='circle', color='blue', size=10)
+    addLegendOnlyEntry(fig, name="---> Route   ", symbol=None, color=None, size=None, mode='text')
     # Add a legend-only time window with "text" shape as bold text
-    addLegendOnlyEntry(fig, name="[Start, End]  Time Window", symbol=None, color=None, size=None, mode='text')
+    addLegendOnlyEntry(fig, name="[Start, End] Time Window", symbol=None, color=None, size=None, mode='text')
 
 
 def plotCustomers(customers):
@@ -38,10 +41,13 @@ def plotCustomers(customers):
             go.Scatter(
                 x=[customer[1]],
                 y=[customer[2]],
-                mode='markers+text', # Allows displaying not only icons but also contents of "text" next to icons
+                # Allows displaying not only icons but also contents of "text" next to icons
+                mode='markers+text',
                 textposition='top center',
-                showlegend=False,  # Not displaying each customer in legend
-                marker=dict(size=10, symbol='circle', color='blue'), # An icon for each customer
+                # Not displaying each customer in legend
+                showlegend=False,
+                # An icon for each customer
+                marker=dict(size=10, symbol='circle', color='blue'), 
                 text=f"<b>[{customer[4]}, {customer[5]}]</b>",
                 name="Customer",
             )
@@ -64,50 +70,47 @@ def plotDepots(depots):
             )
         )  
 
+            
+# Colourblind-friendly colours
+routeColors = px.colors.qualitative.Safe               
+
 def plotRoutes(solution):
     # Plot a route connection between a depot and customer(-s)
+    # Counter for uniqueness of colours
+    counter = 0
     for route in solution.routes:
+        # Set a different colour for each route
+        colour = routeColors[ counter % len(routeColors)]
         for i in range(len(route) - 1):
             start=route[i]
-            end=route[i+1]          
-            fig.add_annotation(
-                x=end.X,
-                y=end.Y,
-                ax=start.X,
-                ay=start.Y,
-                xref="x",
-                yref="y",
-                axref="x",
-                ayref="y",
-                showarrow=True,
-                arrowhead=3,      
-                arrowsize=2,      
-                arrowwidth=1,   
-                arrowcolor="black",
-                name = "Route"
+            end=route[i+1]
+            fig.add_trace(
+                go.Scatter(
+                    x=[start.X, end.X],
+                    y=[start.Y, end.Y],
+                    mode="lines+markers",
+                    line=dict(color=colour, width=2),
+                    marker=dict(size=12, symbol="arrow-bar-up", angleref="previous", color=colour),
+                    showlegend=False,
+                    name="Route"
+                )
             )
-
-def clearRoutes():
-    #fig.update_annotations(showarrow = False, visible = False)
-    temp = list(fig.layout.annotations)
-    temp.clear()
-    fig.layout.annotations = tuple(temp)
-
+        counter+=1    
+    return fig
+    
 
 def clearProblemMap():
-    fig.data = []
+    fig.data=()
     addLegendOnlyEntries()
    
 
-def updateProblemMap(DB, solution, index):
+def updateProblemMap(DB, sol, index):
     global problemIndex
-    if problemIndex != index:
-        clearProblemMap()
-        problemIndex = index
-    clearRoutes()  
-    if solution != None: # Avoid plotting an empty Solutions list
-        plotRoutes(solution)
-        solution.clear() # Avoid reploting after changing problem, plot only a new solution
+    problemIndex = index
+    clearProblemMap()
+    # Avoid plotting an empty list of solutions
+    if sol != None:
+        plotRoutes(sol)
     depots = DB.returnDepotData(problemIndex)
     customers = DB.returnCustomerData(problemIndex)
     plotDepots(depots)
@@ -142,17 +145,24 @@ def getProblemMap(DB, problemIndex):
         yaxis = axis_properties,
         showlegend=True,
         legend=dict(
-            orientation="h",  # Horizontal legend
-            yanchor="bottom",  # Anchor legend to the bottom
-            y=-0.09,  # Position legend below the plot
+            # Horizontal legend
+            orientation="h",  
+            # Anchor legend to the bottom
+            yanchor="bottom",  
+            # Position legend below the plot
+            y=-0.09,  
             xanchor="center",
-            x=0.5  # Center legend horizontally
+            # Center legend horizontally
+            x=0.5  
         ),
-        margin=dict(l=10, r=10, t=30, b=80)  # Adjust margins to fit the legend
+        # Adjust margins to fit the legend
+        margin=dict(l=0, r=0, t=5, b=50)  
     )
 
     return dcc.Graph(
-        id="problem-map",                # Reference id of the section
-        style={"margin-bottom": "20px"}, # Add space below the map
+        # Reference id of the section
+        id="problem-map",                
+        # Add space below the map
+        style={"margin-bottom": "20px"}, 
         figure=fig
     )

@@ -10,7 +10,27 @@ class Database():
                  problemDataPath = './data/problem_data.csv'):
         self.__dbPath = dbPath
         self.__problemDataPath = problemDataPath
-        
+    
+
+    # Private Methods
+
+    # Check if the path exists in the system
+    def _isPathExist(self, path):
+        if os.path.exists(path):
+            return True
+        else:
+            return False    
+
+    # Handles database connection
+    def _connect_db(self):
+        if self._isPathExist(self.getDbPath()):
+            return sqlite3.connect(self.getDbPath())
+        else:
+            return False
+
+
+    # Public methods
+
     # Getters
     def getDbPath(self):
         return self.__dbPath
@@ -23,20 +43,8 @@ class Database():
 
     def getDepotsDataPath(self, problemIndex):
         return f'./data/problem{problemIndex}/depots.csv'
+    
 
-    def isPathExist(self, path):
-        if os.path.exists(path):
-            return True
-        else:
-            return False
-
-    # Handle database connection
-    def connect_db(self):
-        if self.isPathExist(self.getDbPath()):
-            return sqlite3.connect(self.getDbPath())
-        else:
-            return False
-        
     def loadTables(self):
         # Create if path does not exists or connect to database
         conn = sqlite3.connect(self.getDbPath())
@@ -59,7 +67,7 @@ class Database():
                 SolutionID INTEGER PRIMARY KEY AUTOINCREMENT,
                 ProblemID INTEGER,
                 SelectionType TEXT NOT NULL,
-                MutationProb REAL NOT NULL,
+                CrossoverProb REAL NOT NULL,
                 Distance REAL NOT NULL,
                 Date TEXT NOT NULL,
                 Time TEXT NOT NULL,
@@ -74,18 +82,17 @@ class Database():
             # (1, 'Tournament', 0.15, 130.78, '2024-09-16', '12:35')
         ]
         cursor.executemany('''
-            INSERT INTO Solutions (ProblemID, SelectionType, MutationProb, Distance, Date, Time)
+            INSERT INTO Solutions (ProblemID, SelectionType, CrossoverProb, Distance, Date, Time)
             VALUES (?, ?, ?, ?, ?, ?)
         ''', solutions_data)
         # Commit and close database connection
         conn.commit()
         conn.close()
         
-
     def returnCustomerData(self, problemIndex: int):
         """ 1-indexed index notation """        
         # Check if path exists 
-        if self.isPathExist(self.getCustomersDataPath(problemIndex)):
+        if self._isPathExist(self.getCustomersDataPath(problemIndex)):
             # Load customer data without header titles and the first index column
             # usecols uses 0-indexed column numbering
             df = pd.read_csv(self.getCustomersDataPath(problemIndex), usecols=[0, 1, 2, 3, 4, 5], header=0)
@@ -98,7 +105,7 @@ class Database():
 
     def returnDepotData(self, problemIndex: int): 
         """ 1-indexed index notation """
-        if self.isPathExist(self.getDepotsDataPath(problemIndex)):
+        if self._isPathExist(self.getDepotsDataPath(problemIndex)):
             # Read depots data and create DataFrame object
             df = pd.read_csv(self.getDepotsDataPath(problemIndex), usecols=[0, 1, 2, 3, 4, 5], header=0)
             # Convert DataFrame to a list of lists
@@ -111,12 +118,12 @@ class Database():
     def returnSolutions(self, problemIndex: int):
         """ 1-indexed for indexes"""
         # Connect to the database
-        conn = self.connect_db()
+        conn = self._connect_db()
         if conn:
             cursor = conn.cursor()
             # Query to select all columns except SolutionID for the given ProblemID
             query = '''
-                SELECT ProblemID, SelectionType, MutationProb, Distance, Date, Time
+                SELECT CrossoverProb, Distance, Date, Time
                 FROM Solutions
                 WHERE ProblemID = ?
             '''
@@ -125,7 +132,7 @@ class Database():
             # Fetch found results into a list
             results = cursor.fetchall()
             # Create DataFrame from query result (excluding the SolutionID)
-            columns = ['ProblemID', 'SelectionType', 'MutationProb', 'Distance', 'Date', 'Time']
+            columns = [ 'CrossoverProb', 'Distance', 'Date', 'Time']
             df = pd.DataFrame(results, columns=columns)
             # Close the connection
             conn.close()
@@ -134,17 +141,16 @@ class Database():
             print("An error occured in returning solutions from database due to an incorrect database path")
             return pd.DataFrame(None)
         
-    
     def recordSolution(self, GA):
-        conn = self.connect_db()
+        conn = self._connect_db()
         if conn:
             cursor = conn.cursor()
             bestDistance = GA.bestSolution.fitness
             dateToday = str(date.today())
             time = str(datetime.now().strftime('%H:%M'))
-            solutionData = [(GA.currProblemIndex, GA.selectionType, GA.mutationProb, bestDistance, dateToday, time)]
+            solutionData = [(GA.currProblemIndex, GA.selectionType, GA.crossoverProb, bestDistance, dateToday, time)]
             cursor.executemany('''
-                INSERT INTO Solutions (ProblemID, SelectionType, MutationProb, Distance, Date, Time)
+                INSERT INTO Solutions (ProblemID, SelectionType, CrossoverProb, Distance, Date, Time)
                 VALUES (?, ?, ?, ?, ?, ?)
             ''', solutionData)
             print(f"Solution with min distance{bestDistance} was recorded into database")

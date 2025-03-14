@@ -2,17 +2,18 @@ from dash import dcc, html
 
 
 def getProblemDropdown():
-    info = [[None,None],[50,4],[10,2],["n","n"], ["n","n"], ["n","n"]]
+    info = [[None,None],[8,2],[10,2],[16,3], [18,3]]
     return dcc.Dropdown(
         id='problems-dropdown', # Reference id of the dropdown
         options=[ # Options with titles and reference values
             {'label': f'Problem {i} ({info[i][0]} customers, {info[i][1]} depots)', 'value': i}
-            for i in range(1, 6)
+            for i in range(1, 5)
         ],
         value=1,  # Default to 'Problem 1'
         searchable=False, # Restrict user text input,
         clearable=False  # Disable the clear option (no "x" icon)
     )
+
 
 def getPopulationSlider():
     return dcc.Slider(
@@ -24,6 +25,7 @@ def getPopulationSlider():
         marks={5: '5', 50: '50'},
         tooltip={"placement": "bottom", "always_visible": True} # current value constant displaying
     )
+
 
 def getIterationsSlider():
     return dcc.Slider(
@@ -46,6 +48,7 @@ def getMutationSlider():
         marks= {0: '0', 1: '1'},
         tooltip={"placement": "bottom", "always_visible": True, } # current value constant displaying
     )
+
 
 def getCrossoverSlider():
     return dcc.Slider(
@@ -82,6 +85,7 @@ def getSelectionDropdown():
         clearable=False     # Disable the clear option (no "x" icon)
     )
 
+
 def getRunButton():
     return html.Div(
         html.Button(
@@ -100,7 +104,7 @@ def getParameterSettings():
             html.H5("Parameter Settings"),  # Section title              
 
             # Label for dropdown and add space above
-            html.Label("Problem to be solved and displayed", style={"margin-top": "20px"}), 
+            html.Label("Problem to be solved and displayed", style={"margin-top": "10px"}), 
             # Dropdown for choosing problem
             getProblemDropdown(),  
 
@@ -137,5 +141,5 @@ def getParameterSettings():
             # Button to trigger the visualisation (Centered)
             getRunButton()
         # Parameter settings styling
-        ], style={"background-color": "#F8F9FA", "padding": "20px", "border-radius": "10px"}
+        ], style={"background-color": "#F8F9FA", "padding": "15px", "border-radius": "15px"}
     )
