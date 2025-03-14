@@ -10,7 +10,27 @@ class Database():
                  problemDataPath = './data/problem_data.csv'):
         self.__dbPath = dbPath
         self.__problemDataPath = problemDataPath
-        
+    
+
+    # Private Methods
+
+    # Check if the path exists in the system
+    def _isPathExist(self, path):
+        if os.path.exists(path):
+            return True
+        else:
+            return False    
+
+    # Handles database connection
+    def _connect_db(self):
+        if self._isPathExist(self.getDbPath()):
+            return sqlite3.connect(self.getDbPath())
+        else:
+            return False
+
+
+    # Public methods
+
     # Getters
     def getDbPath(self):
         return self.__dbPath
@@ -23,20 +43,8 @@ class Database():
 
     def getDepotsDataPath(self, problemIndex):
         return f'./data/problem{problemIndex}/depots.csv'
+    
 
-    def isPathExist(self, path):
-        if os.path.exists(path):
-            return True
-        else:
-            return False
-
-    # Handle database connection
-    def connect_db(self):
-        if self.isPathExist(self.getDbPath()):
-            return sqlite3.connect(self.getDbPath())
-        else:
-            return False
-        
     def loadTables(self):
         # Create if path does not exists or connect to database
         conn = sqlite3.connect(self.getDbPath())
@@ -81,11 +89,10 @@ class Database():
         conn.commit()
         conn.close()
         
-
     def returnCustomerData(self, problemIndex: int):
         """ 1-indexed index notation """        
         # Check if path exists 
-        if self.isPathExist(self.getCustomersDataPath(problemIndex)):
+        if self._isPathExist(self.getCustomersDataPath(problemIndex)):
             # Load customer data without header titles and the first index column
             # usecols uses 0-indexed column numbering
             df = pd.read_csv(self.getCustomersDataPath(problemIndex), usecols=[0, 1, 2, 3, 4, 5], header=0)
@@ -98,7 +105,7 @@ class Database():
 
     def returnDepotData(self, problemIndex: int): 
         """ 1-indexed index notation """
-        if self.isPathExist(self.getDepotsDataPath(problemIndex)):
+        if self._isPathExist(self.getDepotsDataPath(problemIndex)):
             # Read depots data and create DataFrame object
             df = pd.read_csv(self.getDepotsDataPath(problemIndex), usecols=[0, 1, 2, 3, 4, 5], header=0)
             # Convert DataFrame to a list of lists
@@ -111,7 +118,7 @@ class Database():
     def returnSolutions(self, problemIndex: int):
         """ 1-indexed for indexes"""
         # Connect to the database
-        conn = self.connect_db()
+        conn = self._connect_db()
         if conn:
             cursor = conn.cursor()
             # Query to select all columns except SolutionID for the given ProblemID
@@ -134,9 +141,8 @@ class Database():
             print("An error occured in returning solutions from database due to an incorrect database path")
             return pd.DataFrame(None)
         
-    
     def recordSolution(self, GA):
-        conn = self.connect_db()
+        conn = self._connect_db()
         if conn:
             cursor = conn.cursor()
             bestDistance = GA.bestSolution.fitness

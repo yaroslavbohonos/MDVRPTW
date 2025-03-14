@@ -126,7 +126,7 @@ def updateSpeed(speed, _):
     elif speed == 0.5:
         return 1000
     else:
-        return 250
+        return 500
 
 
 # Callback: Update Problem Map and Fitness Graph Dynamically
@@ -205,12 +205,11 @@ def runVisualisation(n_clicks, problemIndex, initPopSize, numGenerations, crosso
     # Create best solution list for easier access of the dictinary within GA
     bestSolutions = list(GA.bestSolutions.values())
     iterationLabels = list(GA.bestSolutions.keys())
-    #print(f"number of best solutions  {len(bestSolutions)}")
-    #print("Min. distances")
     for sol in bestSolutions:
-        print(sol.fitness)
-    #print(f"number of iteration labels {len(iterationLabels)}")
-    #print(f"iteration labels {iterationLabels}")
+        print(sol.fitness)    
+    print(f"Iteration labels: ")
+    for label in iterationLabels:
+        print(label)
  
     endSolvingTime = time.time()
     print(f"Time taken to solve a problem: {endSolvingTime - startTime} sec.")

@@ -11,21 +11,37 @@ class GeneticAlgorithm(Problem):
     # Initialise GeneticAlgorithm object with its variables
     def __init__(self):
         super().__init__()
+        # Hold current index of the problem used from database
         self.currProblemIndex = None
+        # The number of total iterations(generations) in solving
         self.numGenerations = None
+        # A type selection operation
         self.selectionType = None
+        # A probability of executing mutation operation
         self.mutationProb = None
+        # A probability of executing crossover operation
         self.crossoverProb = None
+        # Initial size of population of solutions
         self.initPopSize = None
+        # When the max size is reached, the population of solutions shrinks to intial size
         self.MAX_POP_SIZE = 100
+        # Increases the distance of invalid solutions by the multiplying factor
         self.PENALTY = 1.4
+        # Current best solution found
         self.bestSolution = None
+        # Holds a solution taken to be improved at each iteration
         self.currentSol = None
+        # Holds only solutions with decreased fitness(overall distance)
         self.bestSolutions = {}
+        # Holds all current generated and improved solutions that could be valid and invalid
         self.population = []
+        # Tracks if problem data for the current problem index has been successfully loaded from database
+        # The flag ensures that data is not redundantly reloaded if it's already recorded for the current problem.
+        # It is reset to False whenever a new problem index is set in `recordParameters` to signal that fresh data needs to be fetched.
         self.isdataRecorded = False
 
 
+    # Public methods
     def recordParameters(self, problemIndex, initPopSize, generations, mutationProb, crossoverProb, selectionType):
         # Set parameters based on inputs
         if problemIndex != self.currProblemIndex and self.currProblemIndex != None:
@@ -65,8 +81,34 @@ class GeneticAlgorithm(Problem):
             self.calculateTwRrange()
             self.dataRecorded = True
 
+    def evolvePopulation(self):
+        self._createPopulation()
+        self.currentSol = self.population[0]
+        self._makeFeasible()
+        self.bestSolution = self.currentSol
+        self.bestSolutions[0] = self.bestSolution
 
-    def calculateRouteArrivalTimes(self, route):
+        for generation in range(1, self.numGenerations + 1):
+            self._binaryTournament()
+            
+            if random.random() < self.crossoverProb: # A number between 0.0 and 1.0
+                self._crossover()
+                
+            self._localSearch()
+            # every fifth generation the current sol. will be made feasible
+            #if generation % 5 == 0: 
+            self._makeFeasible()
+            self._addToPopulation(self.currentSol)
+            
+            self.currentSol.isFeasible = self._isFeasible(self.currentSol)
+            if self.currentSol.isFeasible and (self.currentSol.fitness < self.bestSolution.fitness):
+                self.bestSolution = copy.deepcopy(self.currentSol)
+                self.bestSolutions[generation] = copy.deepcopy(self.currentSol)
+        self.bestSolutions[self.numGenerations] = self.bestSolution  
+
+
+    # Private methods
+    def _calculateRouteArrivalTimes(self, route):
         # Handle separately first customer in the route
         route[1].arrivesAt = max( route[1].TW[0], (self.timeMatrix[route[0].ID][route[1].ID] + route[0].TW[0]) )
         # A route has a single customer and its time is already handleded, so skip
@@ -81,21 +123,18 @@ class GeneticAlgorithm(Problem):
             stop2.arrivesAt = max(stop2.TW[0], arrivalTime)
         return
 
-
-    def calculateRoutesArrivalTimes(self, sol):
+    def _calculateRoutesArrivalTimes(self, sol):
         for route in sol.routes:
-            self.calculateRouteArrivalTimes(route)
+            self._calculateRouteArrivalTimes(route)
 
-
-    def isFeasibleTW(self, stop1, stop2):  
+    def _isFeasibleTW(self, stop1, stop2):  
         return stop2.TW[0] <= stop2.arrivesAt <= stop2.TW[1]
 
-
-    def isFeasibleRoute(self, route):
+    def _isFeasibleRoute(self, route):
         if len(route) <= 3:
             return False
         
-        self.calculateRouteArrivalTimes(route)
+        self._calculateRouteArrivalTimes(route)
         depot = route[0]
         routeCapacity = route[1].DEMAND
         
@@ -103,15 +142,14 @@ class GeneticAlgorithm(Problem):
             stop1 = route[i]
             stop2 = route[i + 1]
             routeCapacity += stop2.DEMAND
-            if not self.isFeasibleTW(stop1, stop2):
+            if not self._isFeasibleTW(stop1, stop2):
                 return False
             if routeCapacity > depot.CAPACITY:
                 return False
         return True
 
-
-    def isFeasible(self, sol):        
-        self.calculateRoutesArrivalTimes(sol)
+    def _isFeasible(self, sol):        
+        self._calculateRoutesArrivalTimes(sol)
         """
         print("Arrival at customer times:")
         for cust in self.customers:
@@ -119,30 +157,26 @@ class GeneticAlgorithm(Problem):
         """
         # Iterate over all routes and check feasibility
         for route in sol.routes:
-            if not self.isFeasibleRoute(route):
+            if not self._isFeasibleRoute(route):
                 return False  # Solution is infeasible if any route is infeasible
         return True  # All routes are feasible
 
-
-    def calculateRouteFitness(self, route):
+    def _calculateRouteFitness(self, route):
         totalDistance = 0
         for i in range(len(route)-1):
             totalDistance += self.distMatrix[route[i].ID][route[i + 1].ID]
         return totalDistance
-    
 
     # To do: apply caching for repeated distances
-    def calculateFitness(self, sol):
+    def _calculateFitness(self, sol):
         totalDistance = 0
         for route in sol.routes:
-            totalDistance += self.calculateRouteFitness(route)
+            totalDistance += self._calculateRouteFitness(route)
         if not sol.isFeasible:
             totalDistance *= self.PENALTY
         return round(totalDistance, 1)
         
-
-    # To do: think how I can get rid of removing customers 
-    def createSolution(self):
+    def _createSolution(self):
         solutionRoutes = []
         # Sort customers by the earliest time window start
         customers = sorted(self.customers.copy(), key=lambda c: c.TW[0])
@@ -165,15 +199,11 @@ class GeneticAlgorithm(Problem):
                 solutionRoutes.append(route)
 
         sol = Solution(solutionRoutes, None, None)
-        sol.fitness = self.calculateFitness(sol)
-        sol.isFeasible = self.isFeasible(sol)
-
-        #print(f"A new sol routes: {sol.routes}")
-
+        sol.fitness = self._calculateFitness(sol)
+        sol.isFeasible = self._isFeasible(sol)
         return sol 
 
-
-    def addToPopulation(self, solution):
+    def _addToPopulation(self, solution):
         self.population.append(solution)
         self.population.sort(key=lambda sol: sol.fitness)
             
@@ -181,19 +211,18 @@ class GeneticAlgorithm(Problem):
             for _ in range(len(self.population) - self.initPopSize):
                 self.population.pop()
             for _ in range(10):
-                self.population.append(self.createSolution())        
+                self.population.append(self._createSolution())        
 
         #print(f"Population size: {len(self.population)}")
         #print(f"Best fitness: {self.population[0].fitness}, Worst fitness: {self.population[-1].fitness}")
     
 
-    def createPopulation(self):
+    def _createPopulation(self):
         self.population = []  # Reset population
         for _ in range(self.initPopSize - 1):
-            self.addToPopulation(self.createSolution())
+            self._addToPopulation(self._createSolution())
     
-    
-    def binaryTournament(self):
+    def _binaryTournament(self):
         sol1 = self.population[0]
         sol2 = self.population[1]
         if sol1.fitness < sol2.fitness:
@@ -201,8 +230,7 @@ class GeneticAlgorithm(Problem):
         else:
             self.currentSol = sol2
 
-
-    def crossover(self):
+    def _crossover(self):
         sol = self.currentSol
         if len(sol.routes) <= 1: # Skip if only one route in a solution
             return
@@ -222,13 +250,7 @@ class GeneticAlgorithm(Problem):
         sol.routes[sol.routes.index(parent2)] = child2
         self.currentSol = sol
 
-
-    def isGoodSwap(self, cust1, cust2, route1, route2, sol):
-        # To do:  implement later for efficient calculation
-        pass
-
-
-    def localSearch(self):
+    def _localSearch(self):
         totalNumAttempts = 15000
         attemptsNumCustomer = 15
         bestLocalSol = copy.deepcopy(self.currentSol)
@@ -256,8 +278,8 @@ class GeneticAlgorithm(Problem):
                 cust1Route[cust1Index] = cust2
                 cust2Route[cust2Index] = cust1
             
-                sol.fitness = self.calculateFitness(sol)
-                #sol.isFeasible = self.isFeasible(sol)
+                sol.fitness = self._calculateFitness(sol)
+                #sol.isFeasible = self._isFeasible(sol)
 
                 if sol.fitness < bestLocalSol.fitness:
                     bestLocalSol = copy.deepcopy(sol)        
@@ -265,19 +287,13 @@ class GeneticAlgorithm(Problem):
                 cust2Route[cust2Index] = cust2
                 
                 totalAttempts += 1
-        """        
-        print("Best solution after a local search operation")
-        for route in sol.routes:
-            print(route)
-        print()
-        """
         self.currentSol = bestLocalSol
 
-    def insertCustomer(self, customer):
+    def _insertCustomer(self, customer):
         for route in self.currentSol.routes:
             for position in range(1, len(route)):  # Avoid depots at start and end
                 tempRoute = route[:position] + [customer] + route[position:]
-                if self.isFeasibleRoute(tempRoute):
+                if self._isFeasibleRoute(tempRoute):
                     route.insert(position, customer)
                     return
         # If no valid position found, create a new route with the depot and the customer
@@ -285,7 +301,7 @@ class GeneticAlgorithm(Problem):
         newRoute = [depot, customer, depot]
         self.currentSol.routes.append(newRoute)
     
-    def findInvalidCustomers(self,route):
+    def _findInvalidCustomers(self,route):
         depot = route[0]
         invalidCustomers = []    
         tempValid = route[0]
@@ -296,7 +312,7 @@ class GeneticAlgorithm(Problem):
             currentDemand = sum(c.DEMAND for c in route[1:-1])    
             travelTime = self.timeMatrix[stop1.ID][stop2.ID]
             # Travel times and time windows violation
-            if not self.isFeasibleTW(stop1, stop2) and tempValid.TW[1] > stop2.TW[0]:
+            if not self._isFeasibleTW(stop1, stop2) and tempValid.TW[1] > stop2.TW[0]:
                 invalidCustomers.append(stop2)
             # Capacity violation
             elif currentDemand > depot.CAPACITY:
@@ -305,29 +321,15 @@ class GeneticAlgorithm(Problem):
                 tempValid = stop2
         return invalidCustomers        
 
-
-    """    
-    print("Invalid routes:")
-    for route in invalidRoutes:
-        for cust in route:
-            print(f"Cust x:{cust.X}, y:{cust.Y}, time window:{cust.TW}")
-        
-    for route in sol.routes:
-        self.calculateRouteArrivalTimes(route)     
-        
-    print("Arrival at customer times:")
-    for cust in self.customers:
-        print(f"Cust x:{cust.X}, y:{cust.Y}, arrives at:{cust.arrivesAt}")
-    """
-    def makeFeasible(self):
+    def _makeFeasible(self):
         sol = copy.deepcopy(self.currentSol)
         customersToReinsert = set()  # Use set to avoid duplicates
         
-        self.calculateRoutesArrivalTimes(sol)             
+        self._calculateRoutesArrivalTimes(sol)             
         invalidRoutes = [] 
         # Identify invalid routes
         for route in sol.routes:
-            if not self.isFeasibleRoute(route):
+            if not self._isFeasibleRoute(route):
                 invalidRoutes.append(route)    
 
         for route in invalidRoutes:
@@ -337,10 +339,10 @@ class GeneticAlgorithm(Problem):
             else:
                 route.reverse()
                 # If the reverse repaired the route, skip reinsertion
-                if self.isFeasibleRoute(route):
+                if self._isFeasibleRoute(route):
                     continue
             
-                invalidCustomers = self.findInvalidCustomers(route)
+                invalidCustomers = self._findInvalidCustomers(route)
                 if len(invalidCustomers) == 1:
                     customer = invalidCustomers[0]
                     route.remove(customer)
@@ -357,8 +359,8 @@ class GeneticAlgorithm(Problem):
                     # Try different combinations of customers in the route
                     for i in range(len(invalidCustomers)):
                         tempRoute = [route[0]] + invalidCustomers[:i] + invalidCustomers[i:] + [route[-1]]
-                        if self.isFeasibleRoute(tempRoute):
-                            tempFitness = self.calculateRouteFitness(tempRoute)
+                        if self._isFeasibleRoute(tempRoute):
+                            tempFitness = self._calculateRouteFitness(tempRoute)
                             if tempFitness < bestFitness:
                                 bestFitness = tempFitness
                                 bestRoute = tempRoute.copy()
@@ -380,49 +382,20 @@ class GeneticAlgorithm(Problem):
         while customersToReinsert:
             customer = customersToReinsert.pop()
             self.currentSol = sol  # Temporarily update current solution for reinsertion
-            self.insertCustomer(customer)
+            self._insertCustomer(customer)
             sol = self.currentSol  # Retrieve the updated solution
 
-        sol.isFeasible = self.isFeasible(sol)
-        sol.fitness = self.calculateFitness(sol)
+        sol.isFeasible = self._isFeasible(sol)
+        sol.fitness = self._calculateFitness(sol)
         self.currentSol = sol
 
-
-
-    def canFitInRoute(self, customer, route):
+    def _canFitInRoute(self, customer, route):
         depot = route[0]
         capacity = sum(c.DEMAND for c in route[1:-1])
-        return ( capacity + customer.DEMAND <= depot.CAPACITY and self.isFeasibleTW(depot, customer) )
+        return ( capacity + customer.DEMAND <= depot.CAPACITY and self._isFeasibleTW(depot, customer) )
           
 
-    def evolvePopulation(self):
-        self.createPopulation()
-        self.currentSol = self.population[0]
-        self.makeFeasible()
-        self.bestSolution = self.currentSol
-        self.bestSolutions[0] = self.bestSolution
-
-        for generation in range(1, self.numGenerations + 1):
-            self.binaryTournament()
-            
-            if random.random() < self.crossoverProb: # A number between 0.0 and 1.0
-                self.crossover()
-                
-            self.localSearch()
-            # every fifth generation the current sol. will be made feasible
-            #if generation % 5 == 0: 
-            self.makeFeasible()
-            self.addToPopulation(self.currentSol)
-            
-            self.currentSol.isFeasible = self.isFeasible(self.currentSol)
-            if self.currentSol.isFeasible and (self.currentSol.fitness < self.bestSolution.fitness):
-                self.bestSolution = copy.deepcopy(self.currentSol)
-                self.bestSolutions[generation] = copy.deepcopy(self.currentSol)
-        self.bestSolutions[self.numGenerations] = self.bestSolution        
-
-        
-
-
+          
 """
 To do:
 - Think how I can speed up generating random numbers 
